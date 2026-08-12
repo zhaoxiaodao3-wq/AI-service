@@ -1,0 +1,28 @@
+# Agent 项目地图
+
+## 技术栈
+
+- {{FRAMEWORK}}
+- {{UI_LIB}}
+- {{STATE}}
+
+## 目录导航
+
+| 路径 | 用途 |
+|------|------|
+| src/pages/ | 页面组件 |
+| src/components/ | 公共组件 |
+| docs/superpowers/current/ | 当前版本需求文档 |
+| scripts/harness/ | Harness 校验器 |
+
+## 开发流程（强制）
+
+1. 读取 `docs/superpowers/HARNESS_RULES.md` 与 `SUPERPOWERS_RULES.md`
+2. **开发类任务入口**：`superpowers-harness-run` 或 `/harness <需求>`
+3. 改 `src/` 前：`pnpm harness:status` + `pnpm harness:check`
+4. 目录规范由 `superpowers-demand-workflow` 约束；完成 spec/plan 后再改 `src/`
+
+## 禁止
+
+- 写入 `docs/superpowers/specs/` 等旧扁平路径
+- 跳过 brainstorming 直接写代码（宽松模式下会警告）

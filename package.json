@@ -1,0 +1,14 @@
+{
+  "name": "AI-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "harness:status": "node scripts/harness/status.mjs",
+    "harness:strict": "node scripts/harness/validate-harness.mjs --strict",
+    "harness:check": "node scripts/harness/validate-harness.mjs"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "node scripts/harness/validate-harness.mjs || exit 0"
+  }
+}
