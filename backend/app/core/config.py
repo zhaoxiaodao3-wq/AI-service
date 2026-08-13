@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     llm_proxy_base_url: str = ""
     llm_proxy_api_key: str = ""
 
+    # 可用模型清单（阶段 2 后改为数据库管理，当前静态配置）
+    models: list[str] = [
+        "glm-4-flash",
+        "gpt-4o",
+        "gpt-4o-mini",
+        "deepseek-chat",
+        "claude-3-5-sonnet-20241022",
+    ]
+    # 短期上下文 token 上限：超过后删除最早消息，防止上下文溢出
+    max_context_tokens: int = 4000
+
 
 @lru_cache
 def get_settings() -> Settings:
