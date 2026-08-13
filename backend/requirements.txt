@@ -9,6 +9,7 @@ pydantic-settings>=2.7
 python-dotenv>=1.0.1
 cryptography>=44
 python-multipart>=0.0.20
-qdrant-client>=1.12
+# 与服务端镜像 v1.12.4 保持同大版本，避免版本不兼容警告
+qdrant-client==1.12.1
 pytest>=8.3
 # httpx 由 litellm 自动决定版本，不显式锁定
