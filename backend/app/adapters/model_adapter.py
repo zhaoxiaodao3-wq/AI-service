@@ -9,25 +9,31 @@ from typing import AsyncIterator
 
 
 class ModelError(Exception):
-    """模型调用异常的统一类型。"""
+    """模型调用异常的统一类型，阶段 1 由适配层抛出。"""
 
 
 @dataclass
 class ChatRequest:
-    model: str
-    messages: list[dict]
-    temperature: float = 0.7
+    """统一聊天请求：无论底层是哪个厂商，入参都收敛成这个结构。"""
+
+    model: str  # 模型名，如 gpt-4o / deepseek-chat
+    messages: list[dict]  # OpenAI 风格消息列表 [{"role": "user", "content": "..."}]
+    temperature: float = 0.7  # 随机性：越高回答越发散
 
 
 @dataclass
 class ChatResponse:
-    content: str
-    usage: dict | None = None
+    """统一聊天响应：把不同厂商的返回收敛成统一结构。"""
+
+    content: str  # 模型生成的文本
+    usage: dict | None = None  # token 用量信息，阶段 5 统计用
 
 
 async def chat(request: ChatRequest) -> ChatResponse:
+    """非流式对话入口，阶段 1 实现真实调用。"""
     raise NotImplementedError("阶段 1 实现")
 
 
 async def stream_chat(request: ChatRequest) -> AsyncIterator[str]:
+    """流式对话入口，阶段 1 实现 SSE 分片输出。"""
     raise NotImplementedError("阶段 1 实现")
