@@ -59,7 +59,11 @@ def test_stream_chat_yields_deltas(monkeypatch):
                 type("C", (), {"delta": type("D", (), {"content": "你"})()})()
             ]
 
-        yield FakeChunk()
+        # 返回一个异步生成器：模拟 litellm await 后得到的异步迭代器
+        async def gen():
+            yield FakeChunk()
+
+        return gen()
 
     monkeypatch.setattr(
         "app.adapters.model_adapter.litellm.acompletion", fake_acompletion

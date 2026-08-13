@@ -56,6 +56,18 @@ def _resolve_credentials() -> tuple[str, str | None] | None:
     return None
 
 
+def _to_litellm_model(model: str, provider: str) -> str:
+    """把配置里的干净模型名转成 LiteLLM 认识的模型名。
+
+    智谱走 OpenAI 兼容协议，需要加 openai/ 前缀（openai/glm-4-flash），
+    否则 LiteLLM 无法推断厂商；OpenAI/DeepSeek/Claude 这类
+    已有默认推断的模型名保持不变。
+    """
+    if provider == "zhipu" and not model.startswith("openai/"):
+        return f"openai/{model}"
+    return model
+
+
 def _map_error(exc: Exception) -> ModelError:
     """把 LiteLLM/底层异常映射成统一 ModelError，按特征文本分类。"""
     if isinstance(exc, httpx.TimeoutException):
@@ -76,9 +88,10 @@ async def chat(request: ChatRequest) -> ChatResponse:
     if not creds:
         raise ModelError("invalid_key", "未配置 API Key，请先填写 .env")
     api_key, base_url = creds
+    litellm_model = _to_litellm_model(request.model, get_settings().llm_provider)
     try:
         resp = await litellm.acompletion(
-            model=request.model,
+            model=litellm_model,
             messages=request.messages,
             temperature=request.temperature,
             api_key=api_key,
@@ -100,10 +113,11 @@ async def stream_chat(request: ChatRequest) -> AsyncIterator[str]:
     if not creds:
         raise ModelError("invalid_key", "未配置 API Key，请先填写 .env")
     api_key, base_url = creds
+    litellm_model = _to_litellm_model(request.model, get_settings().llm_provider)
     try:
-        # stream=True 时 acompletion 直接返回异步迭代器（无需 await），逐块读取增量
-        stream = litellm.acompletion(
-            model=request.model,
+        # stream=True 时 acompletion 返回协程，await 后得到异步迭代器，逐块读取增量
+        stream = await litellm.acompletion(
+            model=litellm_model,
             messages=request.messages,
             temperature=request.temperature,
             api_key=api_key,

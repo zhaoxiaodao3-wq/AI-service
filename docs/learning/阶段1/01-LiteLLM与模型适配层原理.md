@@ -86,3 +86,4 @@ if "auth" in text or "401" in text:
 2. **测试很慢**：首次导入 litellm 较慢属正常；之后有缓存会快。
 3. **Key 无效**：确认 `backend/.env` 的 `LLM_API_KEY` 与 `LLM_BASE_URL` 配套（智谱要用 `/api/paas/v4`）。
 4. **切换模型后没生效**：改的是 `.env` 要重启后端；模型下拉切换走请求参数，不影响配置。
+5. **智谱报 LLM Provider NOT provided**：智谱走 OpenAI 兼容协议，适配层会给模型名自动加 `openai/` 前缀（如 `openai/glm-4-flash`），这是 LiteLLM 识别厂商的固定规则。
