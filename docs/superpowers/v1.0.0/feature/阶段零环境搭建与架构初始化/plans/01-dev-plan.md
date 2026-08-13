@@ -761,12 +761,12 @@ Expected: `http://localhost:5173` 可访问，默认 Vite 页面正常。
 
 **Step 5: 写学习文档**
 
-Create: `docs/learning/阶段0/04-Vue3工程结构说明.md`，解释 SPA 是什么、Vite 与开发服务器、TS 的作用、vue-ts 模板目录、pnpm 与 node_modules、为什么用 Element Plus。
+Create: `docs/learning/阶段0/05-Vue3工程结构说明.md`，解释 SPA 是什么、Vite 与开发服务器、TS 的作用、vue-ts 模板目录、pnpm 与 node_modules、为什么用 Element Plus。
 
 **Step 6: Commit**
 
 ```bash
-git add frontend docs/learning/阶段0/04-Vue3工程结构说明.md
+git add frontend docs/learning/阶段0/05-Vue3工程结构说明.md
 git commit -m "feat: 阶段零初始化 Vue3 前端工程"
 ```
 
@@ -885,12 +885,12 @@ Expected: 页面出现顶部导航，点击首页/聊天/文档上传可切换�
 
 **Step 7: 写学习文档**
 
-Create: `docs/learning/阶段0/05-前后端如何联调.md`，解释 HTTP/JSON 通信、REST 风格、axios 拦截器、Vite 代理 `/api` 解决跨域的原理、Element Plus 菜单路由模式。
+Create: `docs/learning/阶段0/06-前后端如何联调.md`，解释 HTTP/JSON 通信、REST 风格、axios 拦截器、Vite 代理 `/api` 解决跨域的原理、Element Plus 菜单路由模式。
 
 **Step 8: Commit**
 
 ```bash
-git add frontend/src docs/learning/阶段0/05-前后端如何联调.md
+git add frontend/src docs/learning/阶段0/06-前后端如何联调.md
 git commit -m "feat: 阶段零封装前端请求与路由布局"
 ```
 
@@ -972,7 +972,7 @@ git commit -m "feat: 阶段零搭建三个基础页面骨架"
 
 **Files:**
 - Create: `README.md`
-- Create: `docs/learning/阶段0/06-多环境配置与密钥安全.md`
+- Create: `docs/learning/阶段0/07-多环境配置与密钥安全.md`
 - Modify: `backend/.gitignore`、`frontend/.gitignore`（如缺失则创建）
 
 **Step 1: 创建根级 `README.md`**
@@ -1000,7 +1000,7 @@ dist/
 
 **Step 3: 写学习文档**
 
-Create: `docs/learning/阶段0/06-多环境配置与密钥安全.md`，解释为什么代码不写死密钥、`.env` 与 `.env.example` 的区别、development/production 环境、`.gitignore` 机制、阶段 2 将如何用 cryptography 加密存储。
+Create: `docs/learning/阶段0/07-多环境配置与密钥安全.md`，解释为什么代码不写死密钥、`.env` 与 `.env.example` 的区别、development/production 环境、`.gitignore` 机制、阶段 2 将如何用 cryptography 加密存储。
 
 **Step 4: 全量启动自测**
 
@@ -1016,7 +1016,7 @@ Expected: 双容器 healthy、后端打印 `PostgreSQL: ok` / `Qdrant: ok`、前
 **Step 5: Commit**
 
 ```bash
-git add README.md backend/.gitignore frontend/.gitignore docs/learning/阶段0/06-多环境配置与密钥安全.md
+git add README.md backend/.gitignore frontend/.gitignore docs/learning/阶段0/07-多环境配置与密钥安全.md
 git commit -m "docs: 阶段零补充启动文档与环境安全说明"
 ```
 
@@ -1052,7 +1052,7 @@ Expected: 返回 200，`{code:0, message:"ok", data:{...}}`，证明代理链路
 
 **Step 5: 学习文档验收**
 
-检查 `docs/learning/阶段0/` 下六篇文档齐全，每篇含五个小节，术语有解释，命令逐条讲解。
+检查 `docs/learning/阶段0/` 下七篇文档齐全，每篇含五个小节，术语有解释，命令逐条讲解。
 
 **Step 5b: 注释验收**
 
