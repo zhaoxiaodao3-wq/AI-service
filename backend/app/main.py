@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
+from app.core.access_log import RequestLogMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
@@ -22,6 +23,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 请求/响应日志中间件：所有 HTTP 请求都会留下开始、请求体、结束三行日志
+app.add_middleware(RequestLogMiddleware)
 
 # 注册统一异常处理（AppError 与兜底 500）
 register_exception_handlers(app)

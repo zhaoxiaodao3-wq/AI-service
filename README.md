@@ -63,6 +63,23 @@ pnpm dev
 
 访问：http://localhost:5173
 
+### 4. 通过 Docker 查看后端日志
+
+```powershell
+docker compose up -d --build backend   # 第一次构建并启动后端容器
+docker compose logs -f backend          # 跟随查看请求/响应日志
+```
+
+日志实时输出到 stdout、不写文件：在聊天页发一条消息，`request start`、`request body`、`chat_stream start/finish`、`request end` 会立刻滚动出现，完整呈现前端请求与后端返回。详细说明见 [07-Docker日志查看与请求响应链路](docs/learning/阶段1/07-Docker日志查看与请求响应链路.md)。
+
+### 5. 实时日志观测（Loki + Grafana）
+
+```powershell
+docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观测栈
+```
+
+打开 http://localhost:3000，默认账号 `admin` / `admin`，进入 **Explore → Live tail** 即可在浏览器实时观测后端请求/响应日志（Promtail 从容器 stdout 实时采集，不写日志文件）。详细说明见 [08-实时日志观测平台LokiGrafana](docs/learning/阶段1/08-实时日志观测平台LokiGrafana.md)。
+
 ## 端口一览
 
 | 服务 | 地址 |
@@ -72,6 +89,8 @@ pnpm dev
 | API 文档 | http://localhost:8000/docs |
 | PostgreSQL | localhost:5433（可在 .env 修改） |
 | Qdrant | http://localhost:6333 |
+| Grafana 观测界面 | http://localhost:3000 |
+| Loki 日志服务 | localhost:3100 |
 
 ## 学习文档索引
 
@@ -84,13 +103,15 @@ pnpm dev
 | [05-Vue3工程结构说明](docs/learning/阶段0/05-Vue3工程结构说明.md) | 前端工程 |
 | [06-前后端如何联调](docs/learning/阶段0/06-前后端如何联调.md) | 联调原理 |
 | [07-多环境配置与密钥安全](docs/learning/阶段0/07-多环境配置与密钥安全.md) | 配置安全 |
+| [07-Docker日志查看与请求响应链路](docs/learning/阶段1/07-Docker日志查看与请求响应链路.md) | 请求/响应日志与 Docker 查看 |
+| [08-实时日志观测平台LokiGrafana](docs/learning/阶段1/08-实时日志观测平台LokiGrafana.md) | Loki + Grafana 网页实时观测 |
 
 ## 阶段规划
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
 | 0 | 环境搭建与架构初始化 | 已完成 |
-| 1 | 基础 AI 对话 + 多模型对接 + 短期记忆 | 未开始 |
+| 1 | 基础 AI 对话 + 多模型对接 + 短期记忆 | 已完成（含 UI 优化与实时日志观测） |
 | 2 | 业务数据全持久化 | 未开始 |
 | 3 | 自建 Qdrant + 完整 RAG 知识库 | 未开始 |
 | 4 | AI 长期向量记忆 | 未开始 |
