@@ -5,8 +5,11 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from app.adapters.model_adapter import ModelError
+from app.core.exceptions import AppError
+from app.db.session import SessionLocal
 from app.schemas.chat import ChatStreamRequest
 from app.services.chat_service import stream_chat_events
+from app.services import message_service, session_service
 
 router = APIRouter(prefix="/api", tags=["chat"])
 logger = logging.getLogger("app.chat")
@@ -24,11 +27,24 @@ async def chat_stream(req: ChatStreamRequest):
     正常：逐段输出 delta，结束时输出 done；
     异常：输出 error 事件（含 code/message）而不是中断连接。
     """
+    last_user_full = ""
     last_user = ""
     for msg in reversed(req.messages):
         if msg.get("role") == "user":
-            last_user = str(msg.get("content", "")).replace("\n", " ").strip()[:80]
+            last_user_full = str(msg.get("content", ""))
+            last_user = last_user_full.replace("\n", " ").strip()[:80]
             break
+
+    chat_session_id = req.session_id
+    if chat_session_id is not None:
+        db = SessionLocal()
+        try:
+            session_service.get_session(db, chat_session_id)
+            if last_user_full:
+                message_service.add_message(db, chat_session_id, "user", last_user_full)
+        finally:
+            db.close()
+
     logger.info(
         "chat_stream start messages=%d model=%s preview='%s'",
         len(req.messages),
@@ -40,12 +56,15 @@ async def chat_stream(req: ChatStreamRequest):
         counts = {"delta": 0, "done": 0, "error": 0}
         chars = 0
         preview = ""
+        full_text = ""
+        error_text = ""
         try:
             async for event in stream_chat_events(req.messages, req.model):
                 kind = event.get("type", "?")
                 counts[kind] = counts.get(kind, 0) + 1
                 if kind == "delta":
                     chunk = event.get("content", "")
+                    full_text += chunk
                     chars += len(chunk)
                     preview = (preview + chunk)[:80]
                     logger.info(
@@ -58,6 +77,7 @@ async def chat_stream(req: ChatStreamRequest):
         except ModelError as exc:
             # 模型侧错误：转成 SSE error 事件，前端按 code 提示
             counts["error"] += 1
+            error_text = f"[错误 {exc.code}] {exc.message}"
             logger.warning(
                 "chat_stream model error code=%s message=%s",
                 exc.code,
@@ -67,6 +87,7 @@ async def chat_stream(req: ChatStreamRequest):
         except Exception:
             # 兜底：不把堆栈暴露给前端
             counts["error"] += 1
+            error_text = "[错误 unknown] 服务器内部错误，请稍后重试"
             logger.exception("chat_stream unexpected error")
             yield sse(
                 {"type": "error", "code": "unknown", "message": "服务器内部错误，请稍后重试"}
@@ -78,6 +99,16 @@ async def chat_stream(req: ChatStreamRequest):
                 chars,
                 preview,
             )
+            if chat_session_id is not None:
+                saved_text = full_text or error_text
+                if saved_text:
+                    db = SessionLocal()
+                    try:
+                        message_service.add_message(
+                            db, chat_session_id, "assistant", saved_text
+                        )
+                    finally:
+                        db.close()
 
     return StreamingResponse(
         event_stream(),

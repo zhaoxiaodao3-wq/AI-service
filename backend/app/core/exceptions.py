@@ -11,9 +11,15 @@ class AppError(Exception):
     所有错误集中在这里处理。
     """
 
-    def __init__(self, code: int = 400, message: str = "请求错误") -> None:
+    def __init__(
+        self,
+        code: int = 400,
+        message: str = "请求错误",
+        http_status: int | None = None,
+    ) -> None:
         self.code = code  # 业务错误码
         self.message = message  # 给用户看的错误信息
+        self.http_status = http_status or (code if 400 <= code < 500 else 400)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -22,7 +28,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
         # 捕获业务主动抛出的 AppError，按其中携带的 code/message 返回
-        return fail(exc.code, exc.message)
+        return fail(exc.code, exc.message, http_status=exc.http_status)
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(

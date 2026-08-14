@@ -16,12 +16,20 @@ export async function chatStream(
     onDone: () => void
     onError: (code: string, message: string) => void
   },
+  sessionId?: number,
 ) {
+  const payload: { messages: ChatMessage[]; model: string; session_id?: number } = {
+    messages,
+    model,
+  }
+  if (sessionId && sessionId > 0) {
+    payload.session_id = sessionId
+  }
   // 发送 POST 请求，后端以 text/event-stream 持续返回
   const resp = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, model }),
+    body: JSON.stringify(payload),
   })
   if (!resp.ok || !resp.body) {
     handlers.onError('http', `请求失败（${resp.status}）`)

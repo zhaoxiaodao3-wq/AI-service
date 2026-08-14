@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     # 应用基本信息
     app_name: str = "aigc-backend"
     app_env: str = "development"
+    # 敏感字段加密密钥（Fernet key）；生产环境必须换成自己的随机值
+    secret_key: str = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 
     # 数据库连接串：格式 postgresql+psycopg://用户:密码@主机:端口/库名
     database_url: str = (

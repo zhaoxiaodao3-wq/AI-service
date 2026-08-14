@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,13 +8,22 @@ from app.core.access_log import RequestLogMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.db.init_db import init_db
 
 # 启动前先初始化日志，保证后续所有日志都走统一格式
 setup_logging()
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """应用启动时初始化数据库表与种子数据，幂等可重复执行。"""
+    init_db()
+    yield
+
+
 # 创建 FastAPI 应用实例，title 会显示在 /docs 文档页
-app = FastAPI(title=settings.app_name)
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 # CORS 中间件：允许本地前端（5173）跨域访问后端接口。
 # 本阶段前端走 Vite 代理，通常不触发跨域，这里预留直连场景。

@@ -3,8 +3,12 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-def test_models_returns_list():
+def test_models_returns_list(monkeypatch):
     """验证 GET /api/models 返回模式、模型清单与默认模型。"""
+    monkeypatch.setattr(
+        "app.api.models.list_models",
+        lambda db: (["glm-4-flash", "deepseek-chat"], "glm-4-flash"),
+    )
     client = TestClient(app)
     resp = client.get("/api/models")
     assert resp.status_code == 200

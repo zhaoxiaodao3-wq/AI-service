@@ -5,8 +5,12 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-def test_access_log_records_request_and_response(caplog):
+def test_access_log_records_request_and_response(caplog, monkeypatch):
     """普通接口应产生请求开始/请求结束日志。"""
+    monkeypatch.setattr(
+        "app.api.models.list_models",
+        lambda db: (["glm-4-flash"], "glm-4-flash"),
+    )
     with caplog.at_level(logging.INFO, logger="app.access"):
         client = TestClient(app)
         resp = client.get("/api/models")

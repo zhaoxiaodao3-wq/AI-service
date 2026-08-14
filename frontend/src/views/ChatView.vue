@@ -25,6 +25,14 @@
           >
             <span class="session-avatar">{{ s.title.slice(0, 1) }}</span>
             <span class="session-name">{{ s.title }}</span>
+            <span class="session-actions" @click.stop>
+              <el-icon class="session-action" title="重命名" @click="renameSession(s)">
+                <Edit />
+              </el-icon>
+              <el-icon class="session-action" title="删除" @click="deleteSession(s)">
+                <Delete />
+              </el-icon>
+            </span>
           </div>
         </div>
       </div>
@@ -171,13 +179,16 @@
 import {
   ChatDotRound,
   Close,
+  Delete,
   Document,
+  Edit,
   MagicStick,
   Paperclip,
   PictureFilled,
   Plus,
   Promotion,
 } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { chatStream, type ChatMessage } from '../api/chatStream'
@@ -195,11 +206,9 @@ interface Attachment {
   url?: string
 }
 
-// 会话列表（内存态）：阶段 2 持久化到 PostgreSQL
-const sessions = ref<Session[]>([{ id: 1, title: '新会话 1', messages: [] }])
-const activeSessionId = ref(1)
-// 会话自增序号，用于生成标题
-let sessionSeq = 1
+// 会话列表：阶段 2 开始由 PostgreSQL 持久化，刷新页面后重新加载
+const sessions = ref<Session[]>([])
+const activeSessionId = ref(0)
 
 // 模型相关
 const models = ref<string[]>([])
@@ -257,22 +266,74 @@ const activeSession = computed(() =>
 )
 
 // 创建新会话并激活，历史会话留在左侧列表
-function newSession() {
-  sessionSeq += 1
-  const session: Session = {
-    id: sessionSeq,
-    title: `新会话 ${sessionSeq}`,
-    messages: [],
+async function newSession() {
+  try {
+    const res: any = await request.post('/sessions', {})
+    const session = res.data.session
+    sessions.value.push({ id: session.id, title: session.title, messages: [] })
+    activeSessionId.value = session.id
+    input.value = ''
+    attachments.value = []
+  } catch {
+    // 请求拦截器已提示错误，这里保持页面可用
   }
-  sessions.value.push(session)
-  activeSessionId.value = session.id
-  input.value = ''
-  attachments.value = []
 }
 
 // 切换到指定历史会话
-function switchSession(id: number) {
+async function switchSession(id: number) {
+  if (id === activeSessionId.value) return
   activeSessionId.value = id
+  const session = sessions.value.find((s) => s.id === id)
+  if (!session) return
+  session.messages = []
+  try {
+    const res: any = await request.get(`/sessions/${id}/messages`)
+    session.messages = res.data.messages.map((m: any) => ({
+      role: m.role,
+      content: m.content,
+    }))
+  } catch {
+    session.messages = []
+  }
+}
+
+// 重命名会话：弹出输入框，取消时不改动
+async function renameSession(session: Session) {
+  try {
+    const { value } = await ElMessageBox.prompt('输入新标题', '重命名会话', {
+      inputValue: session.title,
+      inputValidator: (v: string) => !!v.trim() || '标题不能为空',
+    })
+    if (!value) return
+    const res: any = await request.patch(`/sessions/${session.id}`, {
+      title: value.trim(),
+    })
+    session.title = res.data.session.title
+  } catch {
+    // 用户取消或请求失败，保持原样
+  }
+}
+
+// 删除会话：确认后删除，若删除的是当前会话则切换/新建
+async function deleteSession(session: Session) {
+  try {
+    await ElMessageBox.confirm(`删除会话「${session.title}」？`, '删除确认', {
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  await request.delete(`/sessions/${session.id}`)
+  const index = sessions.value.findIndex((s) => s.id === session.id)
+  if (index >= 0) sessions.value.splice(index, 1)
+  if (activeSessionId.value === session.id) {
+    const next = sessions.value[0]
+    if (next) {
+      await switchSession(next.id)
+    } else {
+      await newSession()
+    }
+  }
 }
 
 // 选择普通文件：加入附件列表（不解析内容）
@@ -353,6 +414,7 @@ async function send() {
           activeAiMsg = null
         },
       },
+      session.id,
     )
   } catch {
     // fetch 网络异常兜底
@@ -378,7 +440,7 @@ watch(() => activeSession.value?.messages?.length ?? 0, scrollToBottom)
 watch(loading, scrollToBottom)
 watch(activeSessionId, scrollToBottom)
 
-// 页面挂载时拉取可用模型列表，并监听窗口宽度
+// 页面挂载时拉取模型与会话列表；无会话时自动创建
 onMounted(async () => {
   try {
     const res: any = await request.get('/models')
@@ -387,6 +449,24 @@ onMounted(async () => {
   } catch {
     models.value = ['glm-4-flash']
     model.value = 'glm-4-flash'
+  }
+  try {
+    const res: any = await request.get('/sessions')
+    const list = res.data.sessions
+    if (list.length) {
+      sessions.value = list.map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        messages: [],
+      }))
+      await switchSession(list[0].id)
+    } else {
+      await newSession()
+    }
+  } catch {
+    // 后端不可用时保留一个本地会话，页面仍可打开
+    sessions.value = [{ id: -1, title: '新会话', messages: [] }]
+    activeSessionId.value = -1
   }
 })
 
@@ -521,9 +601,35 @@ onUnmounted(() => {
 }
 
 .session-name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.session-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.session-item:hover .session-actions {
+  display: inline-flex;
+}
+
+.session-action {
+  padding: 2px;
+  border-radius: 4px;
+  color: #86909c;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.session-action:hover {
+  color: #4e6ef2;
+  background: #eef3ff;
 }
 
 .chat-main {

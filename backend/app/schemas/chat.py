@@ -10,3 +10,6 @@ class ChatStreamRequest(BaseModel):
     model: str | None = Field(
         None, description="模型名；缺省时使用 .env 配置的默认模型"
     )
+    session_id: int | None = Field(
+        None, description="会话 ID；提供时后端自动保存本轮消息"
+    )
