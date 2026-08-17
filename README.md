@@ -151,6 +151,9 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | [01-前端容器化与Nginx](docs/learning/阶段6/01-前端容器化与Nginx.md) | 前端镜像与 Nginx |
 | [02-健康检查与一键部署](docs/learning/阶段6/02-健康检查与一键部署.md) | 健康检查与部署 |
 | [03-项目收尾与运维清单](docs/learning/阶段6/03-项目收尾与运维清单.md) | 运维清单 |
+| [04-二次元卡通风格改造](docs/learning/阶段6/04-二次元卡通风格改造.md) | 二次元 UI 改造 |
+| [05-聊天布局与滚动交互优化](docs/learning/阶段6/05-聊天布局与滚动交互优化.md) | 布局与滚动交互 |
+| [06-聊天布局审查与修订](docs/learning/阶段6/06-聊天布局审查与修订.md) | 布局审查与修订 |
 
 ## 阶段规划
 

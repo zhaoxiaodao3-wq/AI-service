@@ -49,7 +49,7 @@
         </el-select>
       </header>
 
-      <section ref="messagesRef" class="messages">
+      <section ref="messagesRef" class="messages" @scroll="onMessagesScroll">
         <div v-if="(activeSession?.messages ?? []).length === 0" class="empty-state">
           <span class="empty-logo">A</span>
           <h2>今天想聊点什么？</h2>
@@ -114,6 +114,15 @@
         </div>
       </section>
 
+      <button
+        v-if="showScrollBtn"
+        class="scroll-bottom-btn"
+        title="回到底部"
+        @click="scrollToBottom"
+      >
+        <el-icon><ArrowDown /></el-icon>
+      </button>
+
       <footer class="input-area">
         <div class="input-shell">
           <div v-if="attachments.length" class="attachments">
@@ -134,17 +143,18 @@
               inline-prompt
             />
             <el-tooltip content="上传文件" placement="top">
-              <button class="icon-btn" @click="fileInput?.click()">
+              <button class="icon-btn" aria-label="上传文件" @click="fileInput?.click()">
                 <el-icon><Paperclip /></el-icon>
               </button>
             </el-tooltip>
             <el-tooltip content="上传图片" placement="top">
-              <button class="icon-btn" @click="imageInput?.click()">
+              <button class="icon-btn" aria-label="上传图片" @click="imageInput?.click()">
                 <el-icon><PictureFilled /></el-icon>
               </button>
             </el-tooltip>
             <el-input
               v-model="input"
+              aria-label="聊天输入框"
               class="chat-input"
               type="textarea"
               :rows="1"
@@ -155,6 +165,7 @@
             />
             <button
               class="send-btn"
+              aria-label="发送消息"
               :disabled="loading || (!input.trim() && attachments.length === 0)"
               @click="send"
             >
@@ -183,6 +194,7 @@
 
 <script setup lang="ts">
 import {
+  ArrowDown,
   ChatDotRound,
   Close,
   Delete,
@@ -233,6 +245,7 @@ const messagesRef = ref<HTMLElement | null>(null)
 const hasStreamedContent = ref(false)
 const streamingSessionId = ref(-1)
 const streamingIndex = ref(-1)
+const showScrollBtn = ref(false)
 
 // 打字机缓冲区：SSE 分片先入队，定时器按节奏追加到消息内容
 let pendingText = ''
@@ -439,9 +452,35 @@ async function send() {
 function scrollToBottom() {
   nextTick(() => {
     if (messagesRef.value) {
-      messagesRef.value.scrollTop = messagesRef.value.scrollHeight
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      messagesRef.value.scrollTo({
+        top: messagesRef.value.scrollHeight,
+        behavior: reduce ? 'auto' : 'smooth',
+      })
+      window.setTimeout(() => onMessagesScroll(), reduce ? 0 : 400)
     }
   })
+}
+
+let scrollRaf: number | undefined
+
+function onMessagesScroll() {
+  if (scrollRaf !== undefined) return
+  scrollRaf = window.requestAnimationFrame(() => {
+    scrollRaf = undefined
+    const el = messagesRef.value
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160
+    const hasMessages = (activeSession.value?.messages?.length ?? 0) > 0
+    showScrollBtn.value = !nearBottom && hasMessages
+  })
+}
+
+function cancelScrollRaf() {
+  if (scrollRaf !== undefined) {
+    window.cancelAnimationFrame(scrollRaf)
+    scrollRaf = undefined
+  }
 }
 
 watch(() => activeSession.value?.messages?.length ?? 0, scrollToBottom)
@@ -479,6 +518,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  cancelScrollRaf()
   if (revealTimer !== undefined) {
     window.clearInterval(revealTimer)
     revealTimer = undefined
@@ -1009,5 +1049,208 @@ onUnmounted(() => {
   .input-area {
     padding: 10px 10px 14px;
   }
+}
+</style>
+<style scoped>
+/* 布局交互：侧栏整高、输入框居中落底、消息区独立滚动 */
+.chat-page {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.session-section {
+  min-height: 0;
+}
+
+.session-list {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.chat-main {
+  position: relative;
+  min-height: 0;
+}
+
+.messages {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 24px 130px;
+}
+
+.scroll-bottom-btn {
+  position: absolute;
+  right: 24px;
+  bottom: 120px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--color-border);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-outer);
+  color: var(--color-primary);
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.scroll-bottom-btn:hover {
+  transform: translateY(-2px);
+  background: #ffe4e6;
+}
+</style>
+<style scoped>
+/* 二次元卡通覆盖层：在现有结构上替换为软糖风 */
+.chat-page {
+  background: transparent;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.9);
+  border-right: var(--border-w) solid var(--color-border);
+}
+
+.brand-logo {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-sun));
+  box-shadow: var(--shadow-outer);
+}
+
+.brand-text {
+  font-family: 'Fredoka', sans-serif;
+  color: var(--color-foreground);
+}
+
+.new-btn {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  border: 3px solid #fff;
+  border-radius: 14px;
+  box-shadow: var(--shadow-outer);
+  font-family: 'Fredoka', sans-serif;
+}
+
+.session-item {
+  border: 2px solid transparent;
+  border-radius: 14px;
+}
+
+.session-item:hover {
+  background: var(--color-muted);
+}
+
+.session-item.active {
+  background: #ffe4e6;
+  border-color: var(--color-border);
+  color: var(--color-primary);
+}
+
+.session-avatar {
+  background: var(--color-muted);
+  color: var(--color-primary);
+}
+
+.chat-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: var(--border-w) solid var(--color-border);
+}
+
+.header-icon {
+  color: var(--color-primary);
+}
+
+.messages {
+  background: transparent;
+}
+
+.assistant-avatar {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-sun));
+  box-shadow: var(--shadow-outer);
+}
+
+.bubble {
+  border-radius: 16px;
+}
+
+.bubble.user {
+  background: #ffe4e6;
+  border: var(--border-w) solid var(--color-border);
+}
+
+.bubble.assistant {
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border);
+  box-shadow: var(--shadow-outer);
+}
+
+.typing {
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border);
+  box-shadow: var(--shadow-outer);
+}
+
+.dot {
+  background: var(--color-secondary);
+}
+
+.caret {
+  background: var(--color-primary);
+}
+
+.empty-logo {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-sun));
+  box-shadow: var(--shadow-outer);
+}
+
+.empty-state h2 {
+  font-family: 'Fredoka', sans-serif;
+}
+
+.attachment-img {
+  border: var(--border-w) solid var(--color-border);
+  border-radius: 14px;
+}
+
+.attachment-chip {
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.input-area {
+  padding: 14px 24px 24px;
+}
+
+.input-shell {
+  border: var(--border-w) solid var(--color-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-outer);
+}
+
+.icon-btn {
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.icon-btn:hover {
+  background: #ffe4e6;
+  color: var(--color-primary);
+}
+
+.send-btn {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  box-shadow: var(--shadow-outer);
+}
+
+.send-btn:disabled {
+  background: #fbcfe8;
+  box-shadow: none;
 }
 </style>

@@ -229,3 +229,37 @@ onMounted(loadDocuments)
   display: none;
 }
 </style>
+<style scoped>
+/* 二次元卡通覆盖层 */
+.upload-box {
+  background: rgba(255, 255, 255, 0.92);
+  border: var(--border-w) dashed var(--color-secondary);
+  border-radius: 20px;
+  box-shadow: var(--shadow-outer);
+}
+
+.upload-icon {
+  color: var(--color-primary);
+}
+
+.uploading {
+  background: #ffe4e6;
+  border: 2px solid var(--color-border);
+  color: var(--color-primary);
+}
+
+.doc-item {
+  border: var(--border-w) solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-outer);
+}
+
+.doc-icon {
+  color: var(--color-primary);
+}
+
+.doc-delete:hover {
+  color: var(--color-destructive, #dc2626);
+  background: #fee2e2;
+}
+</style>

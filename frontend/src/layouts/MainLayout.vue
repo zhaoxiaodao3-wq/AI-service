@@ -1,5 +1,5 @@
 <template>
-  <!-- 全局布局：顶部导航 + 内容区，所有页面共用 -->
+  <!-- 二次元卡通全局布局：顶部导航 + 内容区 -->
   <div class="layout">
     <header class="header">
       <div class="brand">
@@ -7,31 +7,18 @@
         <span class="brand-name">AIGC 对话平台</span>
       </div>
       <nav class="nav">
-        <router-link
-          to="/"
-          class="nav-item"
-          :class="{ active: $route.path === '/' }"
-        >
+        <router-link to="/" class="nav-item" :class="{ active: $route.path === '/' }">
           首页
         </router-link>
-        <router-link
-          to="/chat"
-          class="nav-item"
-          :class="{ active: $route.path === '/chat' }"
-        >
+        <router-link to="/chat" class="nav-item" :class="{ active: $route.path === '/chat' }">
           聊天
         </router-link>
-        <router-link
-          to="/upload"
-          class="nav-item"
-          :class="{ active: $route.path === '/upload' }"
-        >
+        <router-link to="/upload" class="nav-item" :class="{ active: $route.path === '/upload' }">
           文档上传
         </router-link>
       </nav>
     </header>
     <main class="content">
-      <!-- 路由出口：当前地址对应的页面组件渲染在这里 -->
       <router-view />
     </main>
   </div>
@@ -39,21 +26,20 @@
 
 <style scoped>
 .layout {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f6f7;
 }
 
 .header {
-  height: 56px;
+  height: 64px;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  background: #fff;
-  border-bottom: 1px solid #e5e6eb;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: var(--border-w) solid var(--color-border);
 }
 
 .brand {
@@ -63,52 +49,60 @@
 }
 
 .brand-logo {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4e6ef2, #7b5cff);
+  border: 3px solid #fff;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-sun));
+  box-shadow: var(--shadow-outer);
   color: #fff;
-  font-size: 15px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .brand-name {
-  font-size: 16px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 17px;
   font-weight: 600;
-  color: #1f2329;
+  color: var(--color-foreground);
 }
 
 .nav {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .nav-item {
-  padding: 7px 14px;
-  border-radius: 8px;
-  color: #4e5969;
+  padding: 9px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-foreground);
   font-size: 14px;
+  font-weight: 700;
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .nav-item:hover {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--color-muted);
+  transform: translateY(-1px);
 }
 
 .nav-item.active {
-  background: #eef3ff;
-  color: #4e6ef2;
-  font-weight: 600;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-outer);
 }
 
 .content {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   padding: 0;
 }
 </style>

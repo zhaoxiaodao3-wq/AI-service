@@ -1,5 +1,4 @@
 <template>
-  <!-- 首页：项目入口，保持简洁的产品首屏 -->
   <div class="home">
     <div class="hero">
       <span class="hero-logo">A</span>
@@ -31,39 +30,43 @@
 }
 
 .hero-logo {
-  width: 64px;
-  height: 64px;
+  width: 76px;
+  height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #4e6ef2, #7b5cff);
+  margin: 0 auto 22px;
+  border: 4px solid #fff;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-sun));
+  box-shadow: var(--shadow-outer);
   color: #fff;
-  font-size: 30px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 36px;
   font-weight: 700;
 }
 
 h1 {
   margin: 0 0 10px;
-  font-size: 28px;
+  font-size: 40px;
   font-weight: 700;
-  color: #1f2329;
+  color: var(--color-foreground);
 }
 
 p {
-  margin: 0 0 28px;
-  font-size: 14px;
-  color: #86909c;
+  margin: 0 0 30px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
 .actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .action-btn {
-  min-width: 120px;
+  min-width: 130px;
 }
 </style>
