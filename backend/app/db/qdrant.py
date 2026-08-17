@@ -4,9 +4,8 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-# 向量配置：dimension 必须与 Embedding 模型输出维度一致，阶段 3 会按模型调整
+# 向量配置：dimension 必须与 Embedding 模型输出维度一致
 DISTANCE = "Cosine"  # 余弦相似度，衡量语义相近程度
-VECTOR_SIZE = 1536  # 当前预留维度
 
 
 def get_qdrant_client() -> QdrantClient:
@@ -26,18 +25,23 @@ def ensure_collections() -> list[str]:
     """
     client = get_qdrant_client()
     names = [settings.qdrant_collection_doc, settings.qdrant_collection_memory]
-    # 把已存在的集合名收集成 set，用集合判断比逐个 in 列表更快
     existing = {c.name for c in client.get_collections().collections}
     for name in names:
-        if name not in existing:
-            # 新建集合时指定向量维度与距离算法
-            client.create_collection(
-                collection_name=name,
-                vectors_config={
-                    "size": VECTOR_SIZE,
-                    "distance": DISTANCE,
-                },
-            )
+        size = settings.embedding_dimensions
+        if name in existing:
+            info = client.get_collection(name)
+            current_size = info.config.params.vectors.size
+            if current_size == size:
+                continue
+            # 维度不匹配：开发期直接删除重建，保证与 Embedding 模型一致
+            client.delete_collection(name)
+        client.create_collection(
+            collection_name=name,
+            vectors_config={
+                "size": size,
+                "distance": DISTANCE,
+            },
+        )
     return names
 
 

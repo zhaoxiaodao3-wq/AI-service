@@ -13,3 +13,6 @@ class ChatStreamRequest(BaseModel):
     session_id: int | None = Field(
         None, description="会话 ID；提供时后端自动保存本轮消息"
     )
+    use_rag: bool = Field(
+        False, description="是否开启知识库问答（RAG 检索）"
+    )

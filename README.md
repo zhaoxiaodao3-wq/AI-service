@@ -80,6 +80,11 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 
 打开 http://localhost:3000，默认账号 `admin` / `admin`，进入 **Explore → Live tail** 即可在浏览器实时观测后端请求/响应日志（Promtail 从容器 stdout 实时采集，不写日志文件）。详细说明见 [08-实时日志观测平台LokiGrafana](docs/learning/阶段1/08-实时日志观测平台LokiGrafana.md)。
 
+### 6. 可视化查看数据库与向量库
+
+- PostgreSQL 表：http://localhost:5050（Adminer，连接参数见 [06-可视化查看数据库与向量库](docs/learning/阶段3/06-可视化查看数据库与向量库.md)）
+- Qdrant 向量库：http://localhost:6333/dashboard
+
 ## 端口一览
 
 | 服务 | 地址 |
@@ -91,6 +96,8 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | Qdrant | http://localhost:6333 |
 | Grafana 观测界面 | http://localhost:3000 |
 | Loki 日志服务 | localhost:3100 |
+| Adminer 数据库管理 | http://localhost:5050 |
+| Qdrant Dashboard | http://localhost:6333/dashboard |
 
 ## 学习文档索引
 
@@ -106,6 +113,17 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | [07-Docker日志查看与请求响应链路](docs/learning/阶段1/07-Docker日志查看与请求响应链路.md) | 请求/响应日志与 Docker 查看 |
 | [08-实时日志观测平台LokiGrafana](docs/learning/阶段1/08-实时日志观测平台LokiGrafana.md) | Loki + Grafana 网页实时观测 |
 | [09-阶段1补充对后续阶段影响](docs/learning/阶段1/09-阶段1补充对后续阶段影响.md) | 后续阶段任务影响与调整 |
+| [01-业务数据建模与SQLAlchemy实体](docs/learning/阶段2/01-业务数据建模与SQLAlchemy实体.md) | 四张业务表与 ORM |
+| [02-APIKey加密存储Fernet](docs/learning/阶段2/02-APIKey加密存储Fernet.md) | 敏感数据加密原理 |
+| [03-会话消息CRUD与仓库服务分层](docs/learning/阶段2/03-会话消息CRUD与仓库服务分层.md) | 接口分层与 CRUD |
+| [04-聊天流自动持久化与前端历史会话](docs/learning/阶段2/04-聊天流自动持久化与前端历史会话.md) | 消息自动落库与刷新恢复 |
+| [05-Docker内建表与种子数据](docs/learning/阶段2/05-Docker内建表与种子数据.md) | 启动建表与幂等种子 |
+| [01-RAG总览与文档解析](docs/learning/阶段3/01-RAG总览与文档解析.md) | RAG 五步法与文件解析 |
+| [02-文本切片原理与实现](docs/learning/阶段3/02-文本切片原理与实现.md) | 切片窗口与重叠 |
+| [03-Embedding与Qdrant入库](docs/learning/阶段3/03-Embedding与Qdrant入库.md) | 向量化与向量存储 |
+| [04-相似度检索与RAGPrompt](docs/learning/阶段3/04-相似度检索与RAGPrompt.md) | 检索阈值与 Prompt 组装 |
+| [05-前端上传与知识库问答联调](docs/learning/阶段3/05-前端上传与知识库问答联调.md) | 上传页与聊天开关 |
+| [06-可视化查看数据库与向量库](docs/learning/阶段3/06-可视化查看数据库与向量库.md) | Adminer 与 Qdrant Dashboard |
 
 ## 阶段规划
 
@@ -114,7 +132,7 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | 0 | 环境搭建与架构初始化 | 已完成 |
 | 1 | 基础 AI 对话 + 多模型对接 + 短期记忆 | 已完成（含 UI 优化与实时日志观测） |
 | 2 | 业务数据全持久化 | 已完成（会话/消息/模型配置全落库） |
-| 3 | 自建 Qdrant + 完整 RAG 知识库 | 未开始 |
+| 3 | 自建 Qdrant + 完整 RAG 知识库 | 已完成 |
 | 4 | AI 长期向量记忆 | 未开始 |
 | 5 | 工程化完善 + 双模式兼容 | 未开始（阶段1已完成日志与观测基础） |
 | 6 | Docker 容器化部署 + 收尾 | 进行中（后端/数据库/观测栈已容器化） |

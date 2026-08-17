@@ -127,6 +127,12 @@
             </span>
           </div>
           <div class="input-row">
+            <el-switch
+              v-model="useRag"
+              class="rag-switch"
+              active-text="知识库"
+              inline-prompt
+            />
             <el-tooltip content="上传文件" placement="top">
               <button class="icon-btn" @click="fileInput?.click()">
                 <el-icon><Paperclip /></el-icon>
@@ -218,6 +224,7 @@ const model = ref('')
 const input = ref('')
 const attachments = ref<Attachment[]>([])
 const loading = ref(false)
+const useRag = ref(false)
 
 // 隐藏文件输入框引用
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -415,6 +422,7 @@ async function send() {
         },
       },
       session.id,
+      useRag.value,
     )
   } catch {
     // fetch 网络异常兜底
@@ -885,6 +893,11 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   gap: 6px;
+}
+
+.rag-switch {
+  flex: none;
+  margin-right: 4px;
 }
 
 .icon-btn {

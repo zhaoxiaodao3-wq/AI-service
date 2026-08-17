@@ -59,7 +59,9 @@ async def chat_stream(req: ChatStreamRequest):
         full_text = ""
         error_text = ""
         try:
-            async for event in stream_chat_events(req.messages, req.model):
+            async for event in stream_chat_events(
+                req.messages, req.model, use_rag=req.use_rag
+            ):
                 kind = event.get("type", "?")
                 counts[kind] = counts.get(kind, 0) + 1
                 if kind == "delta":

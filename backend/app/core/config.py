@@ -52,6 +52,17 @@ class Settings(BaseSettings):
     # 短期上下文 token 上限：超过后删除最早消息，防止上下文溢出
     max_context_tokens: int = 4000
 
+    # Embedding / RAG 配置：阶段 3 使用
+    embedding_mode: str = "api"  # api=真实模型；local=开发期本地哈希向量
+    embedding_model: str = "embedding-2"
+    embedding_api_key: str = ""
+    embedding_base_url: str = ""
+    embedding_dimensions: int = 1024
+    chunk_size: int = 500
+    chunk_overlap: int = 50
+    rag_top_k: int = 3
+    rag_score_threshold: float = 0.35
+
 
 @lru_cache
 def get_settings() -> Settings:

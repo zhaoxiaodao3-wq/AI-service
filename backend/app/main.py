@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.db.init_db import init_db
+from app.db.qdrant import ensure_collections
 
 # 启动前先初始化日志，保证后续所有日志都走统一格式
 setup_logging()
@@ -19,6 +20,7 @@ settings = get_settings()
 async def lifespan(_app: FastAPI):
     """应用启动时初始化数据库表与种子数据，幂等可重复执行。"""
     init_db()
+    ensure_collections()
     yield
 
 

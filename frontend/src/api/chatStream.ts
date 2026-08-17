@@ -17,13 +17,22 @@ export async function chatStream(
     onError: (code: string, message: string) => void
   },
   sessionId?: number,
+  useRag = false,
 ) {
-  const payload: { messages: ChatMessage[]; model: string; session_id?: number } = {
+  const payload: {
+    messages: ChatMessage[]
+    model: string
+    session_id?: number
+    use_rag?: boolean
+  } = {
     messages,
     model,
   }
   if (sessionId && sessionId > 0) {
     payload.session_id = sessionId
+  }
+  if (useRag) {
+    payload.use_rag = true
   }
   // 发送 POST 请求，后端以 text/event-stream 持续返回
   const resp = await fetch('/api/chat/stream', {

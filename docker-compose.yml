@@ -1,5 +1,6 @@
 include:
   - docker-compose.observability.yml
+  - docker-compose.tools.yml
 
 services:
   postgres:

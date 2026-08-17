@@ -26,6 +26,7 @@
 | 改 | `backend/tests/test_models.py`、`backend/tests/test_access_log.py` |
 | 改 | `frontend/src/api/chatStream.ts`、`frontend/src/views/ChatView.vue` |
 | 改 | `.env.example`、`backend/.env.example`（SECRET_KEY） |
+| 新增 | `docs/learning/阶段2/01~05` 共 5 篇学习文档 |
 | 新增 | `docs/superpowers/v1.0.0/feature/阶段二业务数据全持久化/`（requirements/spec/plans/archive） |
 
 ## 验收结果

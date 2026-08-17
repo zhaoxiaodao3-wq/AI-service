@@ -1,0 +1,9 @@
+services:
+  adminer:
+    image: adminer:4
+    container_name: aigc-adminer
+    restart: unless-stopped
+    ports:
+      - "5050:8080"
+    depends_on:
+      - postgres

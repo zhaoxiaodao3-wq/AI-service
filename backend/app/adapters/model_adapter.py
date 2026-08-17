@@ -13,6 +13,7 @@ import httpx
 import litellm
 
 from app.core.config import get_settings
+from app.services.local_embedding import embed_text as local_embed_text
 
 
 class ModelError(Exception):
@@ -128,5 +129,30 @@ async def stream_chat(request: ChatRequest) -> AsyncIterator[str]:
             delta = chunk.choices[0].delta.content
             if delta:
                 yield delta
+    except Exception as exc:
+        raise _map_error(exc) from exc
+
+
+async def embed_texts(texts: list[str]) -> list[list[float]]:
+    """批量文本向量化：调用 Embedding 模型，返回每个文本的向量。"""
+    s = get_settings()
+    if s.embedding_mode == "local":
+        return [local_embed_text(t) for t in texts]
+    api_key = s.embedding_api_key or s.llm_api_key or s.llm_proxy_api_key
+    base_url = s.embedding_base_url or s.llm_base_url or None
+    if not api_key:
+        raise ModelError("invalid_key", "未配置 Embedding API Key")
+    model = _to_litellm_model(s.embedding_model, s.llm_provider or "openai")
+    try:
+        resp = await litellm.aembedding(
+            model=model,
+            input=texts,
+            api_key=api_key,
+            api_base=base_url,
+        )
+        return [
+            item["embedding"] if isinstance(item, dict) else item.embedding
+            for item in resp.data
+        ]
     except Exception as exc:
         raise _map_error(exc) from exc
