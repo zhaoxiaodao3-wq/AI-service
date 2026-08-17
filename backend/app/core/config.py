@@ -72,6 +72,16 @@ class Settings(BaseSettings):
     llm_retry_count: int = 1
     rate_limit_per_minute: int = 30
 
+    # JWT 认证：阶段 7 使用
+    jwt_secret: str = "dev-jwt-secret-change-me-please-0123456789"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
+
+    # Agent 工具调用：阶段 8 使用
+    tools_enabled: bool = True
+    max_tool_rounds: int = 3
+
 
 @lru_cache
 def get_settings() -> Settings:

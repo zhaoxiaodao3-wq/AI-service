@@ -14,3 +14,7 @@ def get_default_user(db: Session) -> User:
         db.commit()
         db.refresh(user)
     return user
+
+
+def get_user_by_username(db: Session, username: str) -> User | None:
+    return db.query(User).filter_by(username=username).first()

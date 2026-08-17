@@ -32,6 +32,7 @@ class ChatRequest:
     model: str  # 模型名，如 glm-4-flash / gpt-4o
     messages: list[dict]  # OpenAI 风格消息列表
     temperature: float = 0.7  # 随机性，越高越发散
+    tools: list | None = None  # Function Calling 工具列表
 
 
 @dataclass
@@ -40,6 +41,7 @@ class ChatResponse:
 
     content: str  # 模型生成的完整文本
     usage: dict | None = None  # token 用量，阶段 5 统计用
+    tool_calls: list | None = None  # 模型请求调用的工具
 
 
 def _resolve_credentials(
@@ -113,12 +115,24 @@ async def chat(request: ChatRequest) -> ChatResponse:
             temperature=request.temperature,
             api_key=api_key,
             api_base=base_url,
+            tools=request.tools,
         )
-        # 统一取第一条 choice 的内容
-        content = resp.choices[0].message.content
+        # 统一取第一条 choice 的内容与工具调用
+        message = resp.choices[0].message
+        tool_calls = None
+        if getattr(message, "tool_calls", None):
+            tool_calls = [
+                {
+                    "id": tc.id,
+                    "name": tc.function.name,
+                    "arguments": tc.function.arguments,
+                }
+                for tc in message.tool_calls
+            ]
         return ChatResponse(
-            content=content,
+            content=message.content,
             usage=dict(resp.usage) if resp.usage else None,
+            tool_calls=tool_calls,
         )
     except Exception as exc:
         raise _map_error(exc) from exc

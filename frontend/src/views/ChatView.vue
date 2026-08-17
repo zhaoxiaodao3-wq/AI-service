@@ -112,6 +112,11 @@
             </div>
           </div>
         </div>
+
+        <div v-if="toolHint" class="tool-hint">
+          <el-icon><MagicStick /></el-icon>
+          {{ toolHint }}
+        </div>
       </section>
 
       <button
@@ -140,6 +145,12 @@
               v-model="useRag"
               class="rag-switch"
               active-text="知识库"
+              inline-prompt
+            />
+            <el-switch
+              v-model="useTools"
+              class="rag-switch"
+              active-text="工具"
               inline-prompt
             />
             <el-tooltip content="上传文件" placement="top">
@@ -237,6 +248,8 @@ const input = ref('')
 const attachments = ref<Attachment[]>([])
 const loading = ref(false)
 const useRag = ref(false)
+const useTools = ref(false)
+const toolHint = ref('')
 
 // 隐藏文件输入框引用
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -407,6 +420,7 @@ async function send() {
   streamingIndex.value = session.messages.length - 1
   activeAiMsg = aiMsg
   pendingText = ''
+  toolHint.value = ''
 
   try {
     await chatStream(
@@ -433,9 +447,17 @@ async function send() {
           streamingIndex.value = -1
           activeAiMsg = null
         },
+        onToolEvent: (event) => {
+          if (event.type === 'tool_start') {
+            toolHint.value = `正在调用工具：${event.tool}`
+          } else if (event.type === 'tool_done') {
+            toolHint.value = `工具完成：${event.tool}`
+          }
+        },
       },
       session.id,
       useRag.value,
+      useTools.value,
     )
   } catch {
     // fetch 网络异常兜底
@@ -1107,6 +1129,21 @@ onUnmounted(() => {
 .scroll-bottom-btn:hover {
   transform: translateY(-2px);
   background: #ffe4e6;
+}
+
+.tool-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto 10px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
 }
 </style>
 <style scoped>

@@ -11,6 +11,10 @@ const request = axios.create({
 // 请求拦截器：在请求发出前统一处理。
 // 阶段 2 接入登录后，在这里给每个请求自动带上 Token。
 request.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
   return config
 })
 
@@ -19,6 +23,19 @@ request.interceptors.request.use((config) => {
 request.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    const path = error?.config?.url || ''
+    if (
+      error?.response?.status === 401 &&
+      !path.includes('/auth/login') &&
+      !path.includes('/auth/register')
+    ) {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('username')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
     // 优先取后端返回的业务错误信息，取不到就用通用提示
     ElMessage.error(error?.response?.data?.message || '网络异常，请稍后重试')
     return Promise.reject(error)

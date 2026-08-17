@@ -16,3 +16,6 @@ class ChatStreamRequest(BaseModel):
     use_rag: bool = Field(
         False, description="是否开启知识库问答（RAG 检索）"
     )
+    use_tools: bool = Field(
+        False, description="是否开启 Agent 工具调用"
+    )

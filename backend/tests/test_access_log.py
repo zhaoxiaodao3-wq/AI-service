@@ -1,8 +1,14 @@
 import logging
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from app.api.deps import get_current_user
+from app.db.base import Base
 from app.main import app
+from app.models.entities import User
 
 
 def test_access_log_records_request_and_response(caplog, monkeypatch):
@@ -28,6 +34,17 @@ def test_access_log_records_request_and_response(caplog, monkeypatch):
 
 def test_chat_stream_logs_start_and_finish(monkeypatch, caplog):
     """SSE 对话应记录 start/finish 与返回字符数。"""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)()
+    user = User(username="test", password_hash="")
+    session.add(user)
+    session.commit()
+    app.dependency_overrides[get_current_user] = lambda: user
 
     async def fake_stream(request):
         yield "你"
@@ -56,3 +73,6 @@ def test_chat_stream_logs_start_and_finish(monkeypatch, caplog):
     assert "chunk_chars=1" in delta_logs[0]
     assert "total_chars=1" in delta_logs[0]
     assert "total_chars=2" in delta_logs[1]
+    app.dependency_overrides.clear()
+    session.close()
+    engine.dispose()

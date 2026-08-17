@@ -154,6 +154,14 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | [04-二次元卡通风格改造](docs/learning/阶段6/04-二次元卡通风格改造.md) | 二次元 UI 改造 |
 | [05-聊天布局与滚动交互优化](docs/learning/阶段6/05-聊天布局与滚动交互优化.md) | 布局与滚动交互 |
 | [06-聊天布局审查与修订](docs/learning/阶段6/06-聊天布局审查与修订.md) | 布局审查与修订 |
+| [01-认证架构与JWT](docs/learning/阶段7/01-认证架构与JWT.md) | JWT 认证 |
+| [02-密码安全与刷新令牌](docs/learning/阶段7/02-密码安全与刷新令牌.md) | 密码与令牌 |
+| [03-多租户数据隔离](docs/learning/阶段7/03-多租户数据隔离.md) | 数据隔离 |
+| [04-前端登录与路由守卫](docs/learning/阶段7/04-前端登录与路由守卫.md) | 前端登录 |
+| [01-FunctionCalling原理](docs/learning/阶段8/01-FunctionCalling原理.md) | Function Calling |
+| [02-工具注册与安全执行](docs/learning/阶段8/02-工具注册与安全执行.md) | 工具注册与安全 |
+| [03-Agent循环与前端展示](docs/learning/阶段8/03-Agent循环与前端展示.md) | Agent 循环 |
+| [04-高级工具](docs/learning/阶段8/04-高级工具.md) | 天气与汇率工具 |
 
 ## 阶段规划
 
@@ -166,3 +174,10 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | 4 | AI 长期向量记忆 | 已完成 |
 | 5 | 工程化完善 + 双模式兼容 | 已完成 |
 | 6 | Docker 容器化部署 + 收尾 | 已完成 |
+| 7 | 用户认证与多租户 | 已完成 |
+| 8 | Agent 工具调用 | 已完成 |
+| 9 | RAG 增强：Rerank + 混合检索 + 引用溯源 | 需求已登记，未开始 |
+| 10 | 异步任务与文件处理 | 需求已登记，未开始 |
+| 11 | 缓存、分布式限流与安全 | 需求已登记，未开始 |
+| 12 | 可观测性与工程化部署 | 需求已登记，未开始 |
+| 13 | 产品化体验 | 需求已登记，未开始 |

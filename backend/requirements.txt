@@ -12,5 +12,7 @@ python-multipart>=0.0.20
 # 与服务端镜像 v1.12.4 保持同大版本，避免版本不兼容警告
 qdrant-client==1.12.1
 pypdf>=5.0
+PyJWT>=2.9
+bcrypt>=4.2
 pytest>=8.3
 # httpx 由 litellm 自动决定版本，不显式锁定

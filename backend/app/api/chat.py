@@ -3,14 +3,17 @@ import logging
 import time
 
 from fastapi import APIRouter
+from fastapi import Depends
 from fastapi.responses import StreamingResponse
 
 from app.adapters.model_adapter import ModelError
 from app.adapters.model_adapter import embed_texts
+from app.api.deps import get_current_user
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.db.session import SessionLocal
-from app.repositories import model_call_repo, user_repo, vector_repo
+from app.models.entities import User
+from app.repositories import model_call_repo, vector_repo
 from app.schemas.chat import ChatStreamRequest
 from app.services.chat_service import stream_chat_events
 from app.services import message_service, session_service
@@ -25,7 +28,9 @@ def sse(data: dict) -> str:
 
 
 @router.post("/chat/stream")
-async def chat_stream(req: ChatStreamRequest):
+async def chat_stream(
+    req: ChatStreamRequest, user: User = Depends(get_current_user)
+):
     """SSE 流式对话接口。
 
     正常：逐段输出 delta，结束时输出 done；
@@ -45,7 +50,7 @@ async def chat_stream(req: ChatStreamRequest):
     if chat_session_id is not None:
         db = SessionLocal()
         try:
-            session_service.get_session(db, chat_session_id)
+            session_service.get_session(db, chat_session_id, user.id)
             if last_user_full:
                 message_service.add_message(db, chat_session_id, "user", last_user_full)
         finally:
@@ -70,6 +75,8 @@ async def chat_stream(req: ChatStreamRequest):
                 req.model,
                 use_rag=req.use_rag,
                 session_id=req.session_id,
+                user_id=user.id,
+                use_tools=req.use_tools,
             ):
                 kind = event.get("type", "?")
                 counts[kind] = counts.get(kind, 0) + 1
@@ -123,7 +130,6 @@ async def chat_stream(req: ChatStreamRequest):
                             and get_settings().memory_enabled
                         ):
                             try:
-                                user_id = user_repo.get_default_user(db).id
                                 memory_text = (
                                     f"用户：{last_user_full}\nAI：{saved_text}"
                                 )
@@ -131,7 +137,7 @@ async def chat_stream(req: ChatStreamRequest):
                                     await embed_texts([memory_text])
                                 )[0]
                                 vector_repo.upsert_memory(
-                                    user_id,
+                                    user.id,
                                     chat_session_id,
                                     memory_text,
                                     memory_vector,

@@ -17,12 +17,42 @@
           文档上传
         </router-link>
       </nav>
+      <div v-if="username" class="user-area">
+        <span class="user-name">{{ username }}</span>
+        <el-button size="small" class="logout-btn" @click="logout">退出</el-button>
+      </div>
     </header>
     <main class="content">
       <router-view />
     </main>
   </div>
 </template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+
+import request from '../api/request'
+
+const username = ref('')
+
+onMounted(() => {
+  username.value = localStorage.getItem('username') || ''
+})
+
+async function logout() {
+  try {
+    await request.post('/auth/logout', {
+      refresh_token: localStorage.getItem('refresh_token'),
+    })
+  } catch {
+    // 本地仍清理
+  }
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('username')
+  window.location.href = '/login'
+}
+</script>
 
 <style scoped>
 .layout {
@@ -97,6 +127,22 @@
   border-color: var(--color-primary);
   color: #fff;
   box-shadow: var(--shadow-outer);
+}
+
+.user-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-name {
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.logout-btn {
+  border-color: var(--color-border);
+  border-radius: 999px;
 }
 
 .content {

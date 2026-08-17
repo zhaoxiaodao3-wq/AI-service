@@ -2,7 +2,7 @@ import io
 
 from app.core.exceptions import AppError
 from app.models.entities import Document
-from app.repositories import document_repo, user_repo
+from app.repositories import document_repo
 
 ALLOWED_TYPES = {".txt", ".md", ".pdf"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -50,9 +50,8 @@ def build_rag_messages(
     return [system] + [m for m in messages if m.get("role") != "system"]
 
 
-def get_document(db, document_id: int) -> Document:
-    user = user_repo.get_default_user(db)
-    document = document_repo.get_document(db, document_id, user.id)
+def get_document(db, document_id: int, user_id: int) -> Document:
+    document = document_repo.get_document(db, document_id, user_id)
     if document is None:
         raise AppError(404, "文档不存在")
     return document
