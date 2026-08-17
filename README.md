@@ -12,6 +12,22 @@
 | 向量数据库 | Qdrant（Docker 自建） |
 | 工具 | Docker Compose、pnpm |
 
+## 项目架构
+
+```text
+浏览器
+  │ http://localhost:5173
+  ▼
+前端容器（Nginx，SPA + /api 代理）
+  │ /api
+  ▼
+后端容器（FastAPI + LiteLLM）
+  ├── PostgreSQL（业务数据）
+  ├── Qdrant（文档向量 + 记忆向量）
+  ├── Loki + Grafana（实时日志观测）
+  └── Adminer / Qdrant Dashboard（可视化）
+```
+
 ## 目录结构
 
 ```text
@@ -124,6 +140,17 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | [04-相似度检索与RAGPrompt](docs/learning/阶段3/04-相似度检索与RAGPrompt.md) | 检索阈值与 Prompt 组装 |
 | [05-前端上传与知识库问答联调](docs/learning/阶段3/05-前端上传与知识库问答联调.md) | 上传页与聊天开关 |
 | [06-可视化查看数据库与向量库](docs/learning/阶段3/06-可视化查看数据库与向量库.md) | Adminer 与 Qdrant Dashboard |
+| [01-长期记忆原理与双层记忆架构](docs/learning/阶段4/01-长期记忆原理与双层记忆架构.md) | 双层记忆架构 |
+| [02-对话记忆自动入库](docs/learning/阶段4/02-对话记忆自动入库.md) | 记忆写入时机 |
+| [03-跨会话检索与降噪](docs/learning/阶段4/03-跨会话检索与降噪.md) | 检索与阈值 |
+| [04-记忆与知识库融合实测](docs/learning/阶段4/04-记忆与知识库融合实测.md) | 记忆+知识库融合 |
+| [01-双模式兼容与按模型配置](docs/learning/阶段5/01-双模式兼容与按模型配置.md) | 模型表配置与回退 |
+| [02-限流与流式重试](docs/learning/阶段5/02-限流与流式重试.md) | 限流与重试 |
+| [03-模型调用统计](docs/learning/阶段5/03-模型调用统计.md) | 调用统计与 /api/stats |
+| [04-工程化验收与运维建议](docs/learning/阶段5/04-工程化验收与运维建议.md) | 运维与验收 |
+| [01-前端容器化与Nginx](docs/learning/阶段6/01-前端容器化与Nginx.md) | 前端镜像与 Nginx |
+| [02-健康检查与一键部署](docs/learning/阶段6/02-健康检查与一键部署.md) | 健康检查与部署 |
+| [03-项目收尾与运维清单](docs/learning/阶段6/03-项目收尾与运维清单.md) | 运维清单 |
 
 ## 阶段规划
 
@@ -133,6 +160,6 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | 1 | 基础 AI 对话 + 多模型对接 + 短期记忆 | 已完成（含 UI 优化与实时日志观测） |
 | 2 | 业务数据全持久化 | 已完成（会话/消息/模型配置全落库） |
 | 3 | 自建 Qdrant + 完整 RAG 知识库 | 已完成 |
-| 4 | AI 长期向量记忆 | 未开始 |
-| 5 | 工程化完善 + 双模式兼容 | 未开始（阶段1已完成日志与观测基础） |
-| 6 | Docker 容器化部署 + 收尾 | 进行中（后端/数据库/观测栈已容器化） |
+| 4 | AI 长期向量记忆 | 已完成 |
+| 5 | 工程化完善 + 双模式兼容 | 已完成 |
+| 6 | Docker 容器化部署 + 收尾 | 已完成 |

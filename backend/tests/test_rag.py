@@ -58,6 +58,17 @@ def test_build_rag_messages_injects_context():
     assert len(result) == 2
 
 
+def test_build_rag_messages_injects_memories():
+    class Hit:
+        payload = {"text": "用户说他的名字是小明"}
+
+    messages = [{"role": "user", "content": "我叫什么名字？"}]
+    result = build_rag_messages(messages, memories=[Hit()])
+    assert "历史记忆" in result[0]["content"]
+    assert "小明" in result[0]["content"]
+    assert result[-1] == messages[-1]
+
+
 def test_upload_document_txt(monkeypatch, client):
     async def fake_embed(texts):
         return [[0.1] * 1024 for _ in texts]

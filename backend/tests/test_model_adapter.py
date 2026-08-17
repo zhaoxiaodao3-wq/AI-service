@@ -39,7 +39,7 @@ def test_chat_returns_content(monkeypatch):
 def test_chat_no_key_raises_model_error(monkeypatch):
     """未配置 Key 时必须抛 ModelError，且 code 为 invalid_key。"""
     monkeypatch.setattr(
-        "app.adapters.model_adapter._resolve_credentials", lambda: None
+        "app.adapters.model_adapter._resolve_credentials", lambda model_name: None
     )
 
     async def run():

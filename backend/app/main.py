@@ -8,6 +8,7 @@ from app.core.access_log import RequestLogMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.core.rate_limit import RateLimitMiddleware
 from app.db.init_db import init_db
 from app.db.qdrant import ensure_collections
 
@@ -39,6 +40,9 @@ app.add_middleware(
 
 # 请求/响应日志中间件：所有 HTTP 请求都会留下开始、请求体、结束三行日志
 app.add_middleware(RequestLogMiddleware)
+
+# 聊天接口限流：按客户端 IP 滑动窗口，防止刷接口
+app.add_middleware(RateLimitMiddleware, limit=settings.rate_limit_per_minute)
 
 # 注册统一异常处理（AppError 与兜底 500）
 register_exception_handlers(app)

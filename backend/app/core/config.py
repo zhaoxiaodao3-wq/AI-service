@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     rag_top_k: int = 3
     rag_score_threshold: float = 0.35
 
+    # 长期记忆：阶段 4 使用
+    memory_enabled: bool = True
+    memory_top_k: int = 3
+    memory_score_threshold: float = 0.35
+
+    # 工程化：阶段 5 使用
+    llm_retry_count: int = 1
+    rate_limit_per_minute: int = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

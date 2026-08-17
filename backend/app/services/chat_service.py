@@ -10,31 +10,47 @@ from app.services.context_builder import truncate_messages
 
 
 async def stream_chat_events(
-    messages: list[dict], model: str | None, use_rag: bool = False
+    messages: list[dict],
+    model: str | None,
+    use_rag: bool = False,
+    session_id: int | None = None,
 ) -> AsyncIterator[dict]:
     """编排一次流式对话：截断上下文 → 调用适配层 → 产出 SSE 事件。"""
     s = get_settings()
     selected = model or s.llm_model or s.models[0]
     # 手动截断：超长上下文删除最早消息，防止模型窗口溢出
     safe_messages = truncate_messages(messages, s.max_context_tokens)
-    if use_rag:
-        question = ""
-        for m in reversed(messages):
-            if m.get("role") == "user":
-                question = str(m.get("content", ""))
-                break
-        if question:
-            vectors = await embed_texts([question])
-            with SessionLocal() as db:
-                user_id = user_repo.get_default_user(db).id
+    question = ""
+    for m in reversed(messages):
+        if m.get("role") == "user":
+            question = str(m.get("content", ""))
+            break
+
+    hits = []
+    memories = []
+    if (use_rag or session_id is not None) and question:
+        vectors = await embed_texts([question])
+        with SessionLocal() as db:
+            user_id = user_repo.get_default_user(db).id
+        if use_rag:
             hits = vector_repo.search_documents(
                 user_id,
                 vectors[0],
                 top_k=s.rag_top_k,
                 score_threshold=s.rag_score_threshold,
             )
-            if hits:
-                safe_messages = build_rag_messages(safe_messages, hits)
+        if session_id is not None and s.memory_enabled:
+            memories = vector_repo.search_memories(
+                user_id,
+                vectors[0],
+                top_k=s.memory_top_k,
+                score_threshold=s.memory_score_threshold,
+                exclude_session_id=session_id,
+            )
+    if hits or memories:
+        safe_messages = build_rag_messages(
+            safe_messages, hits=hits or None, memories=memories or None
+        )
     # 逐段取模型增量，包装成 SSE delta 事件
     async for delta in stream_chat(
         ChatRequest(model=selected, messages=safe_messages)

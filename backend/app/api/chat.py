@@ -1,12 +1,16 @@
 import json
 import logging
+import time
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from app.adapters.model_adapter import ModelError
+from app.adapters.model_adapter import embed_texts
+from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.db.session import SessionLocal
+from app.repositories import model_call_repo, user_repo, vector_repo
 from app.schemas.chat import ChatStreamRequest
 from app.services.chat_service import stream_chat_events
 from app.services import message_service, session_service
@@ -36,6 +40,8 @@ async def chat_stream(req: ChatStreamRequest):
             break
 
     chat_session_id = req.session_id
+    selected_model = req.model or get_settings().llm_model or get_settings().models[0]
+    started_at = time.monotonic()
     if chat_session_id is not None:
         db = SessionLocal()
         try:
@@ -60,7 +66,10 @@ async def chat_stream(req: ChatStreamRequest):
         error_text = ""
         try:
             async for event in stream_chat_events(
-                req.messages, req.model, use_rag=req.use_rag
+                req.messages,
+                req.model,
+                use_rag=req.use_rag,
+                session_id=req.session_id,
             ):
                 kind = event.get("type", "?")
                 counts[kind] = counts.get(kind, 0) + 1
@@ -108,6 +117,39 @@ async def chat_stream(req: ChatStreamRequest):
                     try:
                         message_service.add_message(
                             db, chat_session_id, "assistant", saved_text
+                        )
+                        if (
+                            last_user_full
+                            and get_settings().memory_enabled
+                        ):
+                            try:
+                                user_id = user_repo.get_default_user(db).id
+                                memory_text = (
+                                    f"用户：{last_user_full}\nAI：{saved_text}"
+                                )
+                                memory_vector = (
+                                    await embed_texts([memory_text])
+                                )[0]
+                                vector_repo.upsert_memory(
+                                    user_id,
+                                    chat_session_id,
+                                    memory_text,
+                                    memory_vector,
+                                )
+                            except Exception:
+                                logger.warning(
+                                    "memory save failed", exc_info=True
+                                )
+                        duration_ms = int((time.monotonic() - started_at) * 1000)
+                        success = counts.get("error", 0) == 0
+                        token_count = max(1, len(full_text) // 2) if full_text else None
+                        model_call_repo.create_model_call(
+                            db,
+                            chat_session_id,
+                            selected_model,
+                            success,
+                            token_count,
+                            duration_ms,
                         )
                     finally:
                         db.close()

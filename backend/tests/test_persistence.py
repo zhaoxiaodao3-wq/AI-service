@@ -8,7 +8,7 @@ from app.core.security import decrypt_secret, encrypt_secret
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models.entities import AiModel, ChatMessage, ChatSession, User
+from app.models.entities import AiModel, ChatMessage, ChatSession, ModelCall, User
 
 
 @pytest.fixture()
@@ -88,6 +88,45 @@ def test_secret_encryption_roundtrip():
     assert decrypt_secret(encrypted) == raw
 
 
+def test_stats_api(client, db_session):
+    """统计接口应返回调用次数、成功率、Token 与按模型分布。"""
+    db_session.add(
+        ModelCall(model="glm-4-flash", success=True, token_count=10, duration_ms=100)
+    )
+    db_session.add(
+        ModelCall(model="glm-4-flash", success=False, token_count=None, duration_ms=50)
+    )
+    db_session.commit()
+
+    resp = client.get("/api/stats")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total_calls"] == 2
+    assert data["success_rate"] == 0.5
+    assert data["total_tokens"] == 10
+    assert data["by_model"]["glm-4-flash"]["calls"] == 2
+
+
+def test_rate_limit_returns_429():
+    """chat 接口超过限流阈值应返回 429。"""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.core.rate_limit import RateLimitMiddleware
+
+    app = FastAPI()
+
+    @app.post("/api/chat/stream")
+    def fake_chat():
+        return {"ok": True}
+
+    app.add_middleware(RateLimitMiddleware, limit=2, window=60)
+    client = TestClient(app)
+    assert client.post("/api/chat/stream").status_code == 200
+    assert client.post("/api/chat/stream").status_code == 200
+    assert client.post("/api/chat/stream").status_code == 429
+
+
 def test_chat_persists_messages(monkeypatch, client):
     """chat 带 session_id 时自动保存 user 与 assistant 消息。"""
     engine = create_engine(
@@ -108,6 +147,20 @@ def test_chat_persists_messages(monkeypatch, client):
         session_id = chat_session.id
 
     monkeypatch.setattr("app.api.chat.SessionLocal", test_session_maker)
+
+    async def fake_embed(texts):
+        return [[0.1] * 1024 for _ in texts]
+
+    monkeypatch.setattr("app.api.chat.embed_texts", fake_embed)
+    monkeypatch.setattr("app.services.chat_service.embed_texts", fake_embed)
+    monkeypatch.setattr(
+        "app.services.chat_service.vector_repo.search_memories",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        "app.api.chat.vector_repo.upsert_memory",
+        lambda *args, **kwargs: None,
+    )
 
     async def fake_stream(request):
         yield "你"

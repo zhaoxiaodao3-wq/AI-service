@@ -42,13 +42,29 @@ class ChatResponse:
     usage: dict | None = None  # token 用量，阶段 5 统计用
 
 
-def _resolve_credentials() -> tuple[str, str | None] | None:
+def _resolve_credentials(
+    model_name: str | None = None,
+) -> tuple[str, str | None] | None:
     """返回 (api_key, base_url)。
 
-    优先级：中转配置非空走中转（开发调试），否则走官方直连；
-    两者都没有返回 None，由调用方抛 invalid_key。
-    这样「官方/中转」切换只改 .env，不改代码。
+    优先级：
+    1. ai_models 表里该模型的加密 Key（阶段 5 起支持每模型独立配置）
+    2. .env 中转配置（开发调试）
+    3. .env 官方直连
+    都没有返回 None，由调用方抛 invalid_key。
     """
+    if model_name:
+        from app.core.security import decrypt_secret
+        from app.db.session import SessionLocal
+        from app.repositories import model_repo
+
+        with SessionLocal() as db:
+            model = model_repo.get_model_by_name(db, model_name)
+            if model and model.api_key_encrypted:
+                api_key = decrypt_secret(model.api_key_encrypted)
+                if api_key:
+                    return api_key, model.base_url or None
+
     s = get_settings()
     if s.llm_proxy_api_key and s.llm_proxy_base_url:
         return s.llm_proxy_api_key, s.llm_proxy_base_url
@@ -85,7 +101,7 @@ def _map_error(exc: Exception) -> ModelError:
 
 async def chat(request: ChatRequest) -> ChatResponse:
     """非流式对话：调用模型一次并返回完整内容。"""
-    creds = _resolve_credentials()
+    creds = _resolve_credentials(request.model)
     if not creds:
         raise ModelError("invalid_key", "未配置 API Key，请先填写 .env")
     api_key, base_url = creds
@@ -110,27 +126,37 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
 async def stream_chat(request: ChatRequest) -> AsyncIterator[str]:
     """流式对话：逐段产出文本增量，由上层转成 SSE delta 事件。"""
-    creds = _resolve_credentials()
+    creds = _resolve_credentials(request.model)
     if not creds:
         raise ModelError("invalid_key", "未配置 API Key，请先填写 .env")
     api_key, base_url = creds
     litellm_model = _to_litellm_model(request.model, get_settings().llm_provider)
-    try:
-        # stream=True 时 acompletion 返回协程，await 后得到异步迭代器，逐块读取增量
-        stream = await litellm.acompletion(
-            model=litellm_model,
-            messages=request.messages,
-            temperature=request.temperature,
-            api_key=api_key,
-            api_base=base_url,
-            stream=True,
-        )
-        async for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield delta
-    except Exception as exc:
-        raise _map_error(exc) from exc
+    attempts = max(1, get_settings().llm_retry_count + 1)
+    last_exc: Exception | None = None
+    for _ in range(attempts):
+        yielded = False
+        try:
+            # stream=True 时 acompletion 返回协程，await 后得到异步迭代器，逐块读取增量
+            stream = await litellm.acompletion(
+                model=litellm_model,
+                messages=request.messages,
+                temperature=request.temperature,
+                api_key=api_key,
+                api_base=base_url,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yielded = True
+                    yield delta
+            return
+        except Exception as exc:
+            last_exc = exc
+            if yielded:
+                raise _map_error(exc) from exc
+    if last_exc is not None:
+        raise _map_error(last_exc) from last_exc
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:

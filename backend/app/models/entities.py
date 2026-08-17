@@ -87,3 +87,17 @@ class Document(Base):
     file_size: Mapped[int] = mapped_column(Integer, default=0)
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ModelCall(Base):
+    """模型调用统计表：记录模型、会话、成功率、Token 与耗时。"""
+
+    __tablename__ = "model_calls"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    model: Mapped[str] = mapped_column(String(128), default="")
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

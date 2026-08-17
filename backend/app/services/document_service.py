@@ -22,15 +22,28 @@ def parse_file(content: bytes, filename: str) -> str:
     return "\n".join(pages)
 
 
-def build_rag_messages(messages: list[dict], hits: list) -> list[dict]:
-    """把检索片段拼进系统提示词，保留用户上下文。"""
-    context = "\n\n".join(
-        f"[片段{i + 1}] {hit.payload.get('text', '')}" for i, hit in enumerate(hits)
-    )
+def build_rag_messages(
+    messages: list[dict], hits: list | None = None, memories: list | None = None
+) -> list[dict]:
+    """把检索片段与历史记忆拼进系统提示词，保留用户上下文。"""
+    parts = []
+    if memories:
+        memory_text = "\n".join(
+            f"[记忆{i + 1}] {m.payload.get('text', '')}"
+            for i, m in enumerate(memories)
+        )
+        parts.append(f"历史记忆（跨会话）：\n{memory_text}")
+    if hits:
+        document_text = "\n".join(
+            f"[片段{i + 1}] {hit.payload.get('text', '')}"
+            for i, hit in enumerate(hits)
+        )
+        parts.append(f"知识库资料：\n{document_text}")
+    context = "\n\n".join(parts)
     system = {
         "role": "system",
         "content": (
-            "你是一名知识库问答助手。请只依据以下资料回答用户问题，"
+            "你是 AI 助手。请结合以下历史记忆与知识库资料回答用户问题，"
             f"资料不足时如实说明：\n\n{context}"
         ),
     }

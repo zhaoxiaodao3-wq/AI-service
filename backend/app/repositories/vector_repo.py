@@ -70,3 +70,64 @@ def delete_document_vectors(doc_id: int) -> None:
         collection_name=get_settings().qdrant_collection_doc,
         points_selector=FilterSelector(filter=qfilter),
     )
+
+
+def upsert_memory(
+    user_id: int, session_id: int, text: str, vector: list[float]
+) -> None:
+    """写入一条长期记忆向量，payload 绑定用户与会话。"""
+    point_id = str(
+        uuid.uuid5(uuid.NAMESPACE_DNS, f"memory-{session_id}-{text[:64]}")
+    )
+    _client().upsert(
+        collection_name=get_settings().qdrant_collection_memory,
+        points=[
+            PointStruct(
+                id=point_id,
+                vector=vector,
+                payload={
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "text": text,
+                    "type": "memory",
+                },
+            )
+        ],
+    )
+
+
+def search_memories(
+    user_id: int,
+    query_vector: list[float],
+    top_k: int = 3,
+    score_threshold: float = 0.35,
+    exclude_session_id: int | None = None,
+) -> list:
+    """检索历史记忆：按用户过滤，可排除当前会话避免重复注入。"""
+    must = [FieldCondition(key="user_id", match=MatchValue(value=user_id))]
+    must_not = []
+    if exclude_session_id is not None:
+        must_not.append(
+            FieldCondition(
+                key="session_id", match=MatchValue(value=exclude_session_id)
+            )
+        )
+    qfilter = Filter(must=must, must_not=must_not or None)
+    return _client().search(
+        collection_name=get_settings().qdrant_collection_memory,
+        query_vector=query_vector,
+        query_filter=qfilter,
+        limit=top_k,
+        score_threshold=score_threshold,
+    )
+
+
+def delete_session_memories(session_id: int) -> None:
+    """删除某会话的全部记忆向量（删除会话时联动清理）。"""
+    qfilter = Filter(
+        must=[FieldCondition(key="session_id", match=MatchValue(value=session_id))]
+    )
+    _client().delete(
+        collection_name=get_settings().qdrant_collection_memory,
+        points_selector=FilterSelector(filter=qfilter),
+    )
