@@ -1,5 +1,7 @@
 # 密钥与环境
 .env
+.env.prod
+.env.prod.local
 
 # 本地工具目录
 .harness/
