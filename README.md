@@ -1,75 +1,204 @@
 # AIGC 对话 + RAG + AI 记忆项目
 
-纯练手、重原理、重工程能力的个人 AIGC 项目，主打：多 AI 大模型统一对接、自研完整 RAG 链路、双层 AI 记忆、完整工程架构。
+一个从零搭建、重原理、重工程能力的个人 AIGC 项目。它不是为了做一个玩具 Demo，而是把一条真实的 AI 应用工程链路完整走一遍：多模型统一对接、流式聊天、业务数据持久化、自建 RAG 知识库、双层 AI 记忆、用户认证与多租户、Agent 工具调用、异步任务、缓存/限流/安全防护与日志观测。
 
-## 技术栈
+如果别人拿到这个仓库，本 README 按“这是什么、结构怎样、从哪入手、如何启动”四件事组织。
+
+## 1. 这是什么项目
+
+一句话：一个带完整后端分层、自建知识库、长期记忆和多租户认证的 AI 对话应用。
+
+核心能力：
+
+| 能力 | 说明 |
+|------|------|
+| 多模型统一对接 | FastAPI + LiteLLM 封装，模型配置落库，支持双模式与按模型配置 |
+| 流式对话 | SSE 逐段输出，聊天记录自动持久化，前端打字机效果 |
+| RAG 知识库 | 文档上传、解析、切片、向量化、Qdrant 检索、混合检索 + RRF、Rerank 精排、引用溯源 |
+| 双层 AI 记忆 | 会话内短期记忆 + 跨会话长期向量记忆 |
+| 用户体系 | JWT 登录、刷新令牌、多租户数据隔离 |
+| Agent 工具 | Function Calling 循环、工具注册与安全执行、天气/汇率等高级工具 |
+| 异步任务 | Redis + RQ 异步处理文档，Worker 独立容器，前端展示进度 |
+| 工程与安全 | 响应缓存、分布式限流、Prompt 注入/SSRF 防护、开源/免费模型 Guard 检测 |
+| 可观测 | Docker 容器日志、Loki + Grafana 实时日志平台、Adminer/Qdrant 可视化 |
+
+适合人群：
+
+- 想系统了解 FastAPI 分层、RAG、Agent、工程化落地的新人。
+- 需要一个 AI 对话项目作为学习样本、面试项目或二次开发基座的人。
+
+## 2. 技术栈
 
 | 层 | 技术 |
 |----|------|
-| 前端 | Vue3 + TypeScript + Vite + Element Plus + Pinia |
-| 后端 | Python FastAPI + LiteLLM（二次封装）+ SQLAlchemy |
+| 前端 | Vue 3 + TypeScript + Vite + Element Plus + Pinia + Vue Router + Axios |
+| 后端 | Python FastAPI + LiteLLM（二次封装）+ SQLAlchemy + Pydantic |
 | 业务数据库 | PostgreSQL 16（Docker） |
 | 向量数据库 | Qdrant（Docker 自建） |
-| 工具 | Docker Compose、pnpm |
+| 缓存 / 队列 | Redis 7（Docker），RQ 异步任务 |
+| 工具 | Docker Compose、pnpm、pytest |
 
-## 项目架构
+## 3. 总体架构
 
 ```text
 浏览器
   │ http://localhost:5173
   ▼
-前端容器（Nginx，SPA + /api 代理）
+前端（Vue3 SPA，本地 pnpm dev 或 Nginx 容器）
   │ /api
   ▼
-后端容器（FastAPI + LiteLLM）
-  ├── PostgreSQL（业务数据）
-  ├── Qdrant（文档向量 + 记忆向量）
-  ├── Loki + Grafana（实时日志观测）
-  └── Adminer / Qdrant Dashboard（可视化）
+后端（FastAPI + LiteLLM）
+  ├── PostgreSQL      业务数据（会话/消息/用户/模型配置/文档）
+  ├── Qdrant          文档向量 + 记忆向量
+  ├── Redis          缓存、分布式限流、RQ 任务队列
+  ├── Worker         RQ 异步文档处理
+  └── Loki + Grafana  容器日志实时观测
 ```
 
-## 目录结构
+请求主链路：前端流式请求 → 后端 Guard 检查 → 多轮 Agent/工具（可选）→ 上下文组装（RAG/记忆检索）→ 模型调用 → SSE 流式返回并落库。
+
+## 4. 目录结构
 
 ```text
 D:\code\AI-agent\
-├── backend/        # FastAPI 后端（分层架构）
-├── frontend/       # Vue3 + TS 前端
+├── backend/                    # FastAPI 后端
+│   ├── app/
+│   │   ├── adapters/           # 模型适配层（多模型/双模式封装）
+│   │   ├── api/                # 路由层：chat、auth、documents、stats 等
+│   │   ├── core/               # 配置、安全、限流、缓存
+│   │   ├── db/                 # 数据库会话与初始化
+│   │   ├── models/             # SQLAlchemy 实体
+│   │   ├── repositories/       # 数据访问层
+│   │   ├── schemas/            # Pydantic 请求/响应模型
+│   │   ├── services/           # 业务服务：聊天、RAG、记忆、Guard、文档、任务
+│   │   ├── tools/              # Agent 工具注册与实现
+│   │   └── utils/              # 通用工具
+│   ├── scripts/                # worker、qdrant 初始化、模型下载脚本
+│   ├── tests/                  # pytest 测试
+│   ├── data/uploads/           # 上传文件目录（运行时）
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/                   # Vue3 + TS 前端
+│   ├── src/
+│   │   ├── api/                # 接口封装
+│   │   ├── components/         # 公共组件
+│   │   ├── layouts/            # 布局
+│   │   ├── router/             # 路由与守卫
+│   │   ├── views/              # 页面：登录、聊天、上传等
+│   │   └── assets/
+│   ├── Dockerfile + nginx 配置
+│   └── package.json
 ├── docs/
-│   ├── superpowers/   # 需求/规格/计划/归档（Harness 管理）
-│   └── learning/阶段0/ # 每步配套学习解释文档
-├── docker-compose.yml  # PostgreSQL + Qdrant 编排
-├── .env.example        # 配置模板
-└── README.md
+│   ├── learning/               # 阶段 0-11 配套学习文档，按阶段目录组织
+│   ├── superpowers/            # 需求/规格/计划/归档（Harness 管理）
+│   └── interview/              # 面试知识点总结
+├── observability/              # Loki/Grafana/Promtail 配置
+├── scripts/                    # Harness 校验、目录初始化等工程脚本
+├── docker-compose.yml          # 主编排：postgres/qdrant/redis/backend/worker/frontend
+├── docker-compose.observability.yml  # Loki + Grafana + Promtail
+├── docker-compose.tools.yml          # Adminer / Qdrant Dashboard 等工具
+├── .env.example                # 根级 Docker 编排配置模板
+├── AGENTS.md                   # 开发协作规范（Codex/Claude 等 Agent 读取）
+└── package.json                # 根级脚本（harness:status / harness:check）
 ```
 
-## 快速启动
+后端分层约定：`api -> services -> repositories -> models/db`，尽量让路由薄、业务进 service、数据访问进 repository，方便测试与替换实现。
 
-### 1. 启动数据库与向量库
+## 5. 从哪里入手
+
+推荐阅读顺序（新人版）：
+
+1. 先读本 README，建立整体认知。
+2. 读 `docs/learning/阶段0/` 的 7 篇基础文档，理解后端分层、Docker/PostgreSQL、Qdrant、FastAPI 接口、Vue 工程与联调方式。
+3. 按阶段 1 到 11 的顺序读 `docs/learning/`，每个阶段都有配套“做了什么、为什么、命令解释、避坑”文档。
+4. 需要改代码前，先读 `AGENTS.md` 和 `docs/superpowers/HARNESS_RULES.md`，了解目录规范与 Harness 门禁。
+5. 看具体需求时，从 `docs/superpowers/v1.0.0/feature/<模块名>/` 的 `requirements -> specs -> plans -> archive` 顺序阅读，能完整还原一个功能从需求到交付的链路。
+
+代码入口建议：
+
+- 后端入口：`backend/app/main.py`，然后看 `backend/app/api/chat.py`、`backend/app/services/chat_service.py`。
+- RAG 链路：`backend/app/services/retrieval_service.py`、`document_processing.py`。
+- 安全 Guard：`backend/app/services/guard_service.py`、`security_service.py`。
+- 前端入口：`frontend/src/router` 和 `frontend/src/views/ChatView.vue`。
+
+## 6. 如何正常启动
+
+### 6.1 前置条件
+
+| 依赖 | 版本建议 |
+|------|----------|
+| Docker Desktop | 最新稳定版 |
+| Node.js | >= 22 |
+| pnpm | 随 Node 安装即可 |
+| Python | >= 3.11（requirements 已兼容 3.14） |
+
+### 6.2 第一次准备：复制并修改环境变量
+
+根目录环境变量（Docker 编排用）：
 
 ```powershell
-Copy-Item .env.example .env          # 第一次：生成本地配置
-# 编辑 .env，把 POSTGRES_PASSWORD 改成自己的强密码
-docker compose up -d
-docker compose ps                    # 两个容器应为 healthy
+Copy-Item .env.example .env
 ```
 
-> 本机若 5432 已被占用，在 `.env` 里把 `POSTGRES_PORT` 改成 5433，后端 `DATABASE_URL` 同步修改。
-
-### 2. 启动后端
+后端环境变量（应用运行用）：
 
 ```powershell
 cd backend
-Copy-Item .env.example .env          # 第一次：与根级密码保持一致
+Copy-Item .env.example .env
+cd ..
+```
+
+至少修改以下值：
+
+- `POSTGRES_PASSWORD`：改成自己的强密码，两个 `.env` 保持一致。
+- `SECRET_KEY`、`JWT_SECRET`：生产环境必须更换。
+- `LLM_*`：填入你要用的模型服务信息；留空时聊天无法调用模型。
+- `EMBEDDING_*`：RAG 需要的向量模型；开发期可设 `EMBEDDING_MODE=local` 用本地哈希向量。
+
+`.env` 与 `backend/.env` 已被 gitignore，不要提交。
+
+### 6.3 方式 A：Docker 一键启动（最省事）
+
+```powershell
+docker compose up -d --build
+```
+
+等待各容器 healthy 后访问：
+
+- 前端：http://localhost:5173
+- 后端健康检查：http://localhost:8000/api/health
+- API 文档：http://localhost:8000/docs
+
+### 6.4 方式 B：本地开发启动（适合改代码）
+
+第一步，启动基础设施（PostgreSQL、Qdrant、Redis）：
+
+```powershell
+docker compose up -d postgres qdrant redis
+docker compose ps
+```
+
+第二步，启动后端：
+
+```powershell
+cd backend
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python -m scripts.init_qdrant        # 幂等创建 Qdrant 集合
+python -m scripts.init_qdrant
 uvicorn app.main:app --reload --port 8000
 ```
 
-健康检查：http://localhost:8000/api/health
+第三步（可选），启动异步 Worker（文档处理、RAG 任务）：
 
-### 3. 启动前端
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m scripts.worker
+```
+
+第四步，启动前端：
 
 ```powershell
 cd frontend
@@ -77,31 +206,46 @@ pnpm install
 pnpm dev
 ```
 
-访问：http://localhost:5173
+访问 http://localhost:5173。
 
-### 4. 通过 Docker 查看后端日志
-
-```powershell
-docker compose up -d --build backend   # 第一次构建并启动后端容器
-docker compose logs -f backend          # 跟随查看请求/响应日志
-```
-
-日志实时输出到 stdout、不写文件：在聊天页发一条消息，`request start`、`request body`、`chat_stream start/finish`、`request end` 会立刻滚动出现，完整呈现前端请求与后端返回。详细说明见 [07-Docker日志查看与请求响应链路](docs/learning/阶段1/07-Docker日志查看与请求响应链路.md)。
-
-### 5. 实时日志观测（Loki + Grafana）
+### 6.5 验证是否启动成功
 
 ```powershell
-docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观测栈
+curl http://localhost:8000/api/health
+docker compose ps
 ```
 
-打开 http://localhost:3000，默认账号 `admin` / `admin`，进入 **Explore → Live tail** 即可在浏览器实时观测后端请求/响应日志（Promtail 从容器 stdout 实时采集，不写日志文件）。详细说明见 [08-实时日志观测平台LokiGrafana](docs/learning/阶段1/08-实时日志观测平台LokiGrafana.md)。
+- 后端健康检查返回 `ok` 类响应。
+- 前端页面能打开，注册/登录后能发起聊天。
+- 上传文档后 Worker 日志能看到任务处理进度。
 
-### 6. 可视化查看数据库与向量库
+## 7. 测试与工程校验
 
-- PostgreSQL 表：http://localhost:5050（Adminer，连接参数见 [06-可视化查看数据库与向量库](docs/learning/阶段3/06-可视化查看数据库与向量库.md)）
-- Qdrant 向量库：http://localhost:6333/dashboard
+后端测试：
 
-## 端口一览
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m pytest -q
+```
+
+前端构建校验：
+
+```powershell
+cd frontend
+pnpm build
+```
+
+Harness 门禁（需求文档/模块结构校验）：
+
+```powershell
+pnpm harness:status
+pnpm harness:check
+```
+
+提交前注意：先跑测试与构建，并确认 `.env`、上传文件等运行时产物未被提交。
+
+## 8. 端口一览
 
 | 服务 | 地址 |
 |------|------|
@@ -115,7 +259,7 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | Adminer 数据库管理 | http://localhost:5050 |
 | Qdrant Dashboard | http://localhost:6333/dashboard |
 
-## 学习文档索引
+## 9. 学习文档索引
 
 | 文档 | 内容 |
 |------|------|
@@ -175,7 +319,7 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | [全项目面试知识点总结](docs/interview/全项目面试知识点总结.md) | 面试参考资料 |
 | [深度知识点详解](docs/interview/深度知识点详解.md) | 面试深度讲解 |
 
-## 阶段规划
+## 10. 阶段规划
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
@@ -193,3 +337,12 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | 11 | 缓存、分布式限流与安全 | 已完成 |
 | 12 | 可观测性与工程化部署 | 需求已登记，未开始 |
 | 13 | 产品化体验 | 需求已登记，未开始 |
+
+## 11. 常见问题
+
+- PostgreSQL 端口被占用：改 `.env` 里的 `POSTGRES_PORT`，并同步修改 `backend/.env` 的 `DATABASE_URL`。
+- Embedding 服务不可用：开发期把 `EMBEDDING_MODE=local`，RAG 仍可跑通全链路。
+- 聊天调用模型失败：检查 `LLM_PROVIDER`、`LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL` 是否齐全，以及后端日志中的实际报错。
+- 上传文档后一直处理中：确认 Worker 已启动（本地开发需单独 `python -m scripts.worker`，Docker 模式看 `aigc-worker` 是否 healthy）。
+- Guard 检测策略：`PROMPT_GUARD_PROVIDER` 支持 `heuristic` / `llm_judge` / `prompt_guard`，模型相关 provider 需要额外配置，失败会自动降级为 safe，不影响聊天。
+- 修改根目录结构或新增需求文档：先读 `AGENTS.md` 与 `docs/superpowers/HARNESS_RULES.md`，按 Harness 目录规范操作。

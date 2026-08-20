@@ -17,3 +17,15 @@ dist/
 # 编辑器
 .idea/
 .vscode/
+
+# pnpm 存储与缓存
+.pnpm-store/
+
+# 运行时上传产物（本地开发与 Docker 挂载）
+backend/data/uploads/
+data/uploads/
+
+# pytest 缓存与临时目录（含沙箱残留锁定目录）
+.pytest_cache/
+.pytest-tmp*
+pytest-cache-files-*/
