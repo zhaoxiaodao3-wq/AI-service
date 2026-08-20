@@ -18,3 +18,13 @@ redis>=5.0
 rq>=1.16
 pytest>=8.3
 # httpx 由 litellm 自动决定版本，不显式锁定
+
+# 阶段十二：数据库迁移
+alembic>=1.13
+
+# 阶段十二：OpenTelemetry 全链路观测
+opentelemetry-sdk>=1.27
+opentelemetry-instrumentation-fastapi>=0.48
+opentelemetry-instrumentation-sqlalchemy>=0.48
+opentelemetry-instrumentation-httpx>=0.48
+opentelemetry-exporter-otlp>=1.27

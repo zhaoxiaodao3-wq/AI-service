@@ -107,6 +107,11 @@ class Settings(BaseSettings):
     prompt_guard_judge_always: bool = False
     prompt_guard_model_dir: str = ""
 
+    # 可观测性：阶段 12 使用（OpenTelemetry）
+    otel_enabled: bool = True
+    otel_service_name: str = "aigc-backend"
+    otel_exporter_otlp_endpoint: str = "http://tempo:4318"
+
 
 @lru_cache
 def get_settings() -> Settings:

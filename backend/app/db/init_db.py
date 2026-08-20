@@ -1,8 +1,13 @@
+import logging
+from pathlib import Path
+
 from app.core.config import get_settings
 from app.core.security import encrypt_secret
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
 from app.models.entities import AiModel, User
+
+logger = logging.getLogger("app.db")
 
 
 def _guess_provider(name: str) -> str:
@@ -16,9 +21,31 @@ def _guess_provider(name: str) -> str:
     return "openai"
 
 
+def _run_migrations() -> None:
+    """表结构迁移：优先 Alembic（upgrade head），不可用时回退 create_all。
+
+    阶段 12 起容器内通过 requirements.txt 安装 alembic，启动即执行迁移；
+    本地/旧环境未装 alembic 时回退建表并打警告，保证开发不被阻断。
+    """
+    backend_dir = Path(__file__).resolve().parent.parent.parent
+    try:
+        from alembic import command
+        from alembic.config import Config
+
+        cfg = Config(str(backend_dir / "alembic.ini"))
+        cfg.set_main_option("script_location", str(backend_dir / "alembic"))
+        command.upgrade(cfg, "head")
+        logger.info("alembic upgrade head 完成，数据库结构已对齐")
+    except Exception as exc:
+        logger.warning(
+            "alembic 迁移不可用（%s），回退 create_all 建表", exc
+        )
+        Base.metadata.create_all(bind=engine)
+
+
 def init_db() -> None:
-    """建表并写入种子数据：默认用户 + 模型配置（API Key 加密）。"""
-    Base.metadata.create_all(bind=engine)
+    """迁移建表并写入种子数据：默认用户 + 模型配置（API Key 加密）。"""
+    _run_migrations()
     s = get_settings()
 
     with SessionLocal() as db:

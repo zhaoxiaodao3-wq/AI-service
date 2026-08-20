@@ -7,12 +7,14 @@
 """
 
 from dataclasses import dataclass
+from contextlib import contextmanager
 from typing import AsyncIterator
 
 import httpx
 import litellm
 
 from app.core.config import get_settings
+from app.core.telemetry import get_tracer
 from app.services.local_embedding import embed_text as local_embed_text
 
 
@@ -108,34 +110,41 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise ModelError("invalid_key", "未配置 API Key，请先填写 .env")
     api_key, base_url = creds
     litellm_model = _to_litellm_model(request.model, get_settings().llm_provider)
-    try:
-        resp = await litellm.acompletion(
-            model=litellm_model,
-            messages=request.messages,
-            temperature=request.temperature,
-            api_key=api_key,
-            api_base=base_url,
-            tools=request.tools,
-        )
-        # 统一取第一条 choice 的内容与工具调用
-        message = resp.choices[0].message
-        tool_calls = None
-        if getattr(message, "tool_calls", None):
-            tool_calls = [
-                {
-                    "id": tc.id,
-                    "name": tc.function.name,
-                    "arguments": tc.function.arguments,
-                }
-                for tc in message.tool_calls
-            ]
-        return ChatResponse(
-            content=message.content,
-            usage=dict(resp.usage) if resp.usage else None,
-            tool_calls=tool_calls,
-        )
-    except Exception as exc:
-        raise _map_error(exc) from exc
+    with _llm_span(request.model) as span:
+        try:
+            resp = await litellm.acompletion(
+                model=litellm_model,
+                messages=request.messages,
+                temperature=request.temperature,
+                api_key=api_key,
+                api_base=base_url,
+                tools=request.tools,
+            )
+            # 统一取第一条 choice 的内容与工具调用
+            message = resp.choices[0].message
+            tool_calls = None
+            if getattr(message, "tool_calls", None):
+                tool_calls = [
+                    {
+                        "id": tc.id,
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    }
+                    for tc in message.tool_calls
+                ]
+            if span is not None and resp.usage:
+                span.set_attribute(
+                    "llm.usage.total_tokens", resp.usage.get("total_tokens")
+                )
+            return ChatResponse(
+                content=message.content,
+                usage=dict(resp.usage) if resp.usage else None,
+                tool_calls=tool_calls,
+            )
+        except Exception as exc:
+            if span is not None:
+                span.set_attribute("error.type", type(exc).__name__)
+            raise _map_error(exc) from exc
 
 
 async def stream_chat(request: ChatRequest) -> AsyncIterator[str]:
@@ -147,30 +156,45 @@ async def stream_chat(request: ChatRequest) -> AsyncIterator[str]:
     litellm_model = _to_litellm_model(request.model, get_settings().llm_provider)
     attempts = max(1, get_settings().llm_retry_count + 1)
     last_exc: Exception | None = None
-    for _ in range(attempts):
-        yielded = False
-        try:
-            # stream=True 时 acompletion 返回协程，await 后得到异步迭代器，逐块读取增量
-            stream = await litellm.acompletion(
-                model=litellm_model,
-                messages=request.messages,
-                temperature=request.temperature,
-                api_key=api_key,
-                api_base=base_url,
-                stream=True,
-            )
-            async for chunk in stream:
-                delta = chunk.choices[0].delta.content
-                if delta:
-                    yielded = True
-                    yield delta
-            return
-        except Exception as exc:
-            last_exc = exc
-            if yielded:
-                raise _map_error(exc) from exc
+    with _llm_span(request.model) as span:
+        for _ in range(attempts):
+            yielded = False
+            try:
+                # stream=True 时 acompletion 返回协程，await 后得到异步迭代器，逐块读取增量
+                stream = await litellm.acompletion(
+                    model=litellm_model,
+                    messages=request.messages,
+                    temperature=request.temperature,
+                    api_key=api_key,
+                    api_base=base_url,
+                    stream=True,
+                )
+                async for chunk in stream:
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        yielded = True
+                        yield delta
+                return
+            except Exception as exc:
+                last_exc = exc
+                if span is not None:
+                    span.set_attribute("error.type", type(exc).__name__)
+                if yielded:
+                    raise _map_error(exc) from exc
     if last_exc is not None:
         raise _map_error(last_exc) from last_exc
+
+
+@contextmanager
+def _llm_span(model: str):
+    """LLM 调用 Trace span 帮助函数：OTel 未初始化时退化为空上下文。"""
+    tr = get_tracer()
+    if tr is None:
+        yield None
+        return
+    with tr.start_as_current_span("llm.chat") as span:
+        span.set_attribute("llm.model.name", model)
+        yield span
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:

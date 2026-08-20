@@ -9,11 +9,14 @@ from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.core.rate_limit import RateLimitMiddleware
+from app.core.telemetry import setup_telemetry
 from app.db.init_db import init_db
 from app.db.qdrant import ensure_collections
 
 # 启动前先初始化日志，保证后续所有日志都走统一格式
 setup_logging()
+# 启动前初始化 OpenTelemetry（失败静默降级，不影响启动）
+setup_telemetry()
 settings = get_settings()
 
 

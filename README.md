@@ -316,6 +316,11 @@ pnpm harness:check
 | [03-Prompt注入与SSRF防护](docs/learning/阶段11/03-Prompt注入与SSRF防护.md) | 安全防护 |
 | [04-LLM安全防护增强](docs/learning/阶段11/04-LLM安全防护增强.md) | 多层安全防护 |
 | [05-开源免费模型检测接入](docs/learning/阶段11/05-开源免费模型检测接入.md) | Guard Provider |
+| [01-Alembic数据库迁移](docs/learning/阶段12/01-Alembic数据库迁移.md) | 数据库迁移 |
+| [02-OpenTelemetry全链路观测](docs/learning/阶段12/02-OpenTelemetry全链路观测.md) | Trace 观测 |
+| [03-CI-CD流水线与GHCR镜像](docs/learning/阶段12/03-CI-CD流水线与GHCR镜像.md) | CI/CD |
+| [04-宝塔VPS生产部署](docs/learning/阶段12/04-宝塔VPS生产部署.md) | 生产部署 |
+| [05-备份恢复与运维清单](docs/learning/阶段12/05-备份恢复与运维清单.md) | 备份运维 |
 | [全项目面试知识点总结](docs/interview/全项目面试知识点总结.md) | 面试参考资料 |
 | [深度知识点详解](docs/interview/深度知识点详解.md) | 面试深度讲解 |
 
@@ -335,7 +340,7 @@ pnpm harness:check
 | 9 | RAG 增强：Rerank + 混合检索 + 引用溯源 | 已完成 |
 | 10 | 异步任务与文件处理 | 已完成 |
 | 11 | 缓存、分布式限流与安全 | 已完成 |
-| 12 | 可观测性与工程化部署 | 需求已登记，未开始 |
+| 12 | 可观测性与工程化部署 | 已完成 |
 | 13 | 产品化体验 | 需求已登记，未开始 |
 
 ## 11. 常见问题
