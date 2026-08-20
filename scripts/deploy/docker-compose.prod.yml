@@ -1,0 +1,29 @@
+# ============================================================
+# 生产覆盖配置：与根目录 docker-compose.yml 一起使用
+#   docker compose -f docker-compose.yml -f scripts/deploy/docker-compose.prod.yml up -d --build
+# 作用：
+#   1. 前端容器监听宿主 80（直接对外 HTTP）
+#   2. APP_ENV=production
+#   3. 数据库/缓存/向量库不再映射宿主机端口（仅容器内网可访问）
+# ============================================================
+services:
+  frontend:
+    ports:
+      - "80:80"
+
+  backend:
+    environment:
+      APP_ENV: production
+
+  worker:
+    environment:
+      APP_ENV: production
+
+  postgres:
+    ports: []
+
+  redis:
+    ports: []
+
+  qdrant:
+    ports: []

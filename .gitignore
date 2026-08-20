@@ -30,4 +30,9 @@ data/uploads/
 # pytest 缓存与临时目录（含沙箱残留锁定目录）
 .pytest_cache/
 .pytest-tmp*
+.pt-*
 pytest-cache-files-*/
+
+# 部署包产物
+dist/
+aigc-agent.tar.gz

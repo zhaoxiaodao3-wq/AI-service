@@ -8,9 +8,14 @@ from app.adapters.model_adapter import ChatRequest, ModelError, chat, stream_cha
 def test_chat_returns_content(monkeypatch):
     """验证非流式 chat 返回统一 ChatResponse。
 
-    用 mock 替换 litellm.acompletion，不真实调用模型，避免消耗额度。
+    用 mock 替换 litellm.acompletion 与 _resolve_credentials，
+    不真实调用模型/数据库，避免消耗额度与依赖外部服务。
     用 asyncio.run 执行协程，避免额外安装 pytest-asyncio 插件。
     """
+    monkeypatch.setattr(
+        "app.adapters.model_adapter._resolve_credentials",
+        lambda model_name: ("test-key", None),
+    )
 
     async def fake_acompletion(**kwargs):
         class FakeResp:
@@ -52,6 +57,10 @@ def test_chat_no_key_raises_model_error(monkeypatch):
 
 def test_stream_chat_yields_deltas(monkeypatch):
     """验证流式 stream_chat 逐段产出文本增量。"""
+    monkeypatch.setattr(
+        "app.adapters.model_adapter._resolve_credentials",
+        lambda model_name: ("test-key", None),
+    )
 
     async def fake_acompletion(**kwargs):
         class FakeChunk:
