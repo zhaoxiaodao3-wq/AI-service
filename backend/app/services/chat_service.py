@@ -1,4 +1,6 @@
 import json
+import hashlib
+import logging
 from typing import AsyncIterator
 
 from app.adapters.model_adapter import ChatRequest, chat, stream_chat
@@ -8,7 +10,12 @@ from app.db.session import SessionLocal
 from app.repositories import user_repo, vector_repo
 from app.services.document_service import build_rag_messages
 from app.services.context_builder import truncate_messages
+from app.services import retrieval_service
+from app.services import cache as cache_service
+from app.services import guard_service
 from app.tools.registry import execute_tool, list_tools
+
+logger = logging.getLogger("app.chat")
 
 
 async def stream_chat_events(
@@ -30,20 +37,54 @@ async def stream_chat_events(
             question = str(m.get("content", ""))
             break
 
+    if s.prompt_guard_enabled and question:
+        decision, provider = await guard_service.guard_user_input(question)
+        if decision != "blocked":
+            decision = "safe"
+        if decision == "blocked":
+            logger.warning("prompt injection blocked provider=%s", provider)
+            yield {
+                "type": "error",
+                "code": "prompt_injection",
+                "message": "检测到可疑指令，已拦截",
+            }
+            return
+
+    cache_key = None
+    if s.cache_enabled and not use_rag and not use_tools and question:
+        cache_key = (
+            f"chat:{selected}:"
+            + hashlib.sha256(question.encode("utf-8")).hexdigest()
+        )
+        cached = cache_service.get_cache(cache_key)
+        if cached is not None:
+            logger.info("chat cache hit key=%s", cache_key)
+            yield {"type": "delta", "content": cached}
+            yield {"type": "done", "usage": None, "citations": None}
+            return
+
     hits = []
     memories = []
+    citations = None
     if (use_rag or session_id is not None) and question:
         vectors = await embed_texts([question])
         if user_id is None:
             with SessionLocal() as db:
                 user_id = user_repo.get_default_user(db).id
         if use_rag:
-            hits = vector_repo.search_documents(
-                user_id,
-                vectors[0],
-                top_k=s.rag_top_k,
-                score_threshold=s.rag_score_threshold,
-            )
+            with SessionLocal() as db:
+                hits = await retrieval_service.hybrid_search(
+                    db, user_id, question, top_k=s.rag_top_k
+                )
+            citations = [
+                {
+                    "doc_id": h.doc_id,
+                    "chunk_index": h.chunk_index,
+                    "text": h.text[:80],
+                    "filename": h.filename,
+                }
+                for h in hits
+            ]
         if session_id is not None and s.memory_enabled:
             memories = vector_repo.search_memories(
                 user_id,
@@ -70,7 +111,7 @@ async def stream_chat_events(
             if not resp.tool_calls:
                 if resp.content:
                     yield {"type": "delta", "content": resp.content}
-                    yield {"type": "done", "usage": resp.usage}
+                    yield {"type": "done", "usage": resp.usage, "citations": citations}
                     return
                 break
             current.append(
@@ -112,9 +153,13 @@ async def stream_chat_events(
         safe_messages = current
 
     # 逐段取模型增量，包装成 SSE delta 事件
+    answer = ""
     async for delta in stream_chat(
         ChatRequest(model=selected, messages=safe_messages)
     ):
+        answer += delta
         yield {"type": "delta", "content": delta}
+    if cache_key and answer:
+        cache_service.set_cache(cache_key, answer)
     # 流结束统一发 done；usage 阶段 5 再补真实统计
-    yield {"type": "done", "usage": None}
+    yield {"type": "done", "usage": None, "citations": citations}

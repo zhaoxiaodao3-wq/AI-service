@@ -1,3 +1,6 @@
+import pathlib
+import uuid
+
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
@@ -8,10 +11,11 @@ from app.core.exceptions import AppError
 from app.core.response import ok
 from app.db.session import get_db
 from app.models.entities import User
-from app.repositories import document_repo, vector_repo
+from app.repositories import document_repo, document_task_repo, vector_repo
 from app.schemas.document import DocumentOut
 from app.services import document_service
 from app.services.chunker import split_text
+from app.services.task_queue import enqueue_document_task
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -20,13 +24,23 @@ def _payload(document) -> dict:
     return DocumentOut.model_validate(document).model_dump(mode="json")
 
 
+def _task_payload(task) -> dict:
+    if task is None:
+        return None
+    return {
+        "id": task.id,
+        "status": task.status,
+        "error": task.error,
+    }
+
+
 @router.post("")
 async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """上传文档：解析 → 切片 → 向量化 → PG 元信息 → Qdrant 入库。"""
+    """上传文档：保存临时文件并异步入队处理。"""
     content = await file.read()
     filename = file.filename or "unnamed"
     if not content:
@@ -34,16 +48,6 @@ async def upload_document(
     if len(content) > document_service.MAX_FILE_SIZE:
         raise AppError(400, "文件不能超过 5MB")
 
-    text = document_service.parse_file(content, filename)
-    if not text.strip():
-        raise AppError(400, "未能从文档中提取到文本")
-
-    s = get_settings()
-    chunks = split_text(text, s.chunk_size, s.chunk_overlap)
-    if not chunks:
-        raise AppError(400, "文档切片为空")
-
-    vectors = await embed_texts(chunks)
     ext = filename.rsplit(".", 1)[-1].lower()
     document = document_repo.create_document(
         db,
@@ -51,10 +55,15 @@ async def upload_document(
         filename,
         ext,
         len(content),
-        len(chunks),
+        0,
     )
-    vector_repo.upsert_document_chunks(document.id, user.id, chunks, vectors)
-    return ok({"document": _payload(document)})
+    upload_dir = pathlib.Path(get_settings().upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / f"{uuid.uuid4().hex}.{ext}"
+    file_path.write_bytes(content)
+    task = document_task_repo.create_task(db, document.id, str(file_path))
+    enqueue_document_task(task.id)
+    return ok({"document": _payload(document), "task": _task_payload(task)})
 
 
 @router.get("")
@@ -63,7 +72,25 @@ def list_documents(
 ):
     """列出当前用户的已上传文档。"""
     documents = document_repo.list_documents(db, user.id)
-    return ok({"documents": [_payload(d) for d in documents]})
+    items = []
+    for doc in documents:
+        item = _payload(doc)
+        task = document_task_repo.latest_by_document(db, doc.id)
+        item["task_status"] = _task_payload(task)
+        items.append(item)
+    return ok({"documents": items})
+
+
+@router.get("/{document_id}/task")
+def get_task_status(
+    document_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """查询文档异步任务状态。"""
+    document_service.get_document(db, document_id, user.id)
+    task = document_task_repo.latest_by_document(db, document_id)
+    return ok({"task": _task_payload(task)})
 
 
 @router.delete("/{document_id}")

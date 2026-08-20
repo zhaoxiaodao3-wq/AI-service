@@ -6,6 +6,7 @@ export interface ChatMessage {
   content: string
   // 附件：阶段 1 只展示与随消息携带，不解析
   attachments?: { name: string; type: string; url?: string }[]
+  citations?: { doc_id: number; chunk_index: number; text: string; filename: string }[]
 }
 
 export async function chatStream(
@@ -13,7 +14,7 @@ export async function chatStream(
   model: string,
   handlers: {
     onDelta: (content: string) => void
-    onDone: () => void
+    onDone: (event?: any) => void
     onError: (code: string, message: string) => void
     onToolEvent?: (event: { type: string; tool: string; result?: string }) => void
   },
@@ -83,7 +84,7 @@ export async function chatStream(
       if (!line) continue
       const event = JSON.parse(line.slice(6))
       if (event.type === 'delta') handlers.onDelta(event.content)
-      else if (event.type === 'done') handlers.onDone()
+      else if (event.type === 'done') handlers.onDone(event)
       else if (event.type === 'error') handlers.onError(event.code, event.message)
       else if (event.type === 'tool_start' || event.type === 'tool_done') {
         handlers.onToolEvent?.({

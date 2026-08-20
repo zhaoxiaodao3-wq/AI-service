@@ -19,7 +19,7 @@
         />
       </div>
 
-      <div v-if="uploading" class="uploading">正在解析并向量化，请稍候…</div>
+      <div v-if="uploading" class="uploading">{{ uploadingText || '正在解析并向量化…' }}</div>
 
       <div class="doc-list">
         <div v-for="doc in documents" :key="doc.id" class="doc-item">
@@ -60,6 +60,7 @@ interface Doc {
 const fileInput = ref<HTMLInputElement | null>(null)
 const documents = ref<Doc[]>([])
 const uploading = ref(false)
+const uploadingText = ref('')
 
 async function loadDocuments() {
   try {
@@ -87,17 +88,45 @@ async function uploadFile(file: File) {
     return
   }
   uploading.value = true
+  uploadingText.value = '正在上传文件…'
   try {
     const formData = new FormData()
     formData.append('file', file)
-    await request.post('/documents', formData, { timeout: 120000 })
-    ElMessage.success('上传成功，已向量化入库')
-    await loadDocuments()
+    const res: any = await request.post('/documents', formData, { timeout: 120000 })
+    const task = res.data.task
+    if (task?.id) {
+      await pollTask(res.data.document.id)
+    } else {
+      ElMessage.success('上传成功')
+      await loadDocuments()
+    }
   } catch {
     // 请求拦截器已提示错误
   } finally {
     uploading.value = false
   }
+}
+
+async function pollTask(documentId: number) {
+  for (let i = 0; i < 60; i++) {
+    const res: any = await request.get(`/documents/${documentId}/task`)
+    const status = res.data.task?.status
+    if (status === 'completed') {
+      uploadingText.value = '处理完成'
+      ElMessage.success('上传成功，已向量化入库')
+      await loadDocuments()
+      return
+    }
+    if (status === 'failed') {
+      uploadingText.value = '处理失败'
+      ElMessage.error('文档处理失败：' + (res.data.task?.error || '未知错误'))
+      await loadDocuments()
+      return
+    }
+    uploadingText.value = status === 'processing' ? '正在解析并向量化…' : '等待处理…'
+    await new Promise((r) => setTimeout(r, 2000))
+  }
+  ElMessage.error('处理超时，请稍后刷新查看')
 }
 
 async function removeDocument(doc: Doc) {

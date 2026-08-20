@@ -87,6 +87,10 @@ def test_upload_document_txt(monkeypatch, client):
         "app.api.documents.vector_repo.delete_document_vectors",
         lambda *args, **kwargs: None,
     )
+    monkeypatch.setattr(
+        "app.api.documents.enqueue_document_task",
+        lambda *args, **kwargs: None,
+    )
 
     resp = client.post(
         "/api/documents",
@@ -101,7 +105,9 @@ def test_upload_document_txt(monkeypatch, client):
     assert resp.status_code == 200
     document = resp.json()["data"]["document"]
     assert document["filename"] == "知识库.txt"
-    assert document["chunk_count"] > 0
+    task = resp.json()["data"]["task"]
+    assert task is not None
+    assert task["status"] == "pending"
 
     assert client.get("/api/documents").json()["data"]["documents"][0]["id"] == document["id"]
     resp = client.delete(f"/api/documents/{document['id']}")

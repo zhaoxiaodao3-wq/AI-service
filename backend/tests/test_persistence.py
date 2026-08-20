@@ -112,12 +112,19 @@ def test_stats_api(client, db_session):
     assert data["by_model"]["glm-4-flash"]["calls"] == 2
 
 
-def test_rate_limit_returns_429():
+def test_rate_limit_returns_429(monkeypatch):
     """chat 接口超过限流阈值应返回 429。"""
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
     from app.core.rate_limit import RateLimitMiddleware
+
+    class FakeRedis:
+        @classmethod
+        def from_url(cls, *args, **kwargs):
+            raise RuntimeError("no redis")
+
+    monkeypatch.setattr("app.core.rate_limit.Redis", FakeRedis)
 
     app = FastAPI()
 

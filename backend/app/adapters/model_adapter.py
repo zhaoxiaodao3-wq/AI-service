@@ -196,3 +196,33 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
         ]
     except Exception as exc:
         raise _map_error(exc) from exc
+
+
+async def rerank(
+    query: str, documents: list[str], model: str | None = None
+) -> list[float] | None:
+    """Rerank 精排：调用 SiliconFlow /v1/rerank，失败返回 None 回退 RRF。"""
+    s = get_settings()
+    api_key = s.rerank_api_key or s.embedding_api_key or s.llm_api_key or s.llm_proxy_api_key
+    base = s.rerank_base_url or s.embedding_base_url or s.llm_base_url
+    if not api_key or not base:
+        return None
+    model = model or s.rerank_model
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                base.rstrip("/") + "/rerank",
+                headers={"Authorization": "Bearer " + api_key},
+                json={"model": model, "query": query, "documents": documents},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        results = data.get("results") or []
+        ordered: list[float] = [0.0] * len(documents)
+        for item in results:
+            index = item.get("index")
+            if index is not None and 0 <= index < len(documents):
+                ordered[index] = item.get("relevance_score", 0.0)
+        return ordered
+    except Exception:
+        return None

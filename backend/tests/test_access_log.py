@@ -45,6 +45,14 @@ def test_chat_stream_logs_start_and_finish(monkeypatch, caplog):
     session.add(user)
     session.commit()
     app.dependency_overrides[get_current_user] = lambda: user
+    monkeypatch.setattr(
+        "app.services.chat_service.cache_service.get_cache",
+        lambda key: None,
+    )
+    monkeypatch.setattr(
+        "app.services.chat_service.cache_service.set_cache",
+        lambda *args, **kwargs: None,
+    )
 
     async def fake_stream(request):
         yield "你"

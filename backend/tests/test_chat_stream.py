@@ -13,7 +13,7 @@ from app.models.entities import User
 
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -26,6 +26,14 @@ def client():
     session.commit()
 
     app.dependency_overrides[get_current_user] = lambda: user
+    monkeypatch.setattr(
+        "app.services.chat_service.cache_service.get_cache",
+        lambda key: None,
+    )
+    monkeypatch.setattr(
+        "app.services.chat_service.cache_service.set_cache",
+        lambda *args, **kwargs: None,
+    )
     yield TestClient(app)
     app.dependency_overrides.clear()
     session.close()

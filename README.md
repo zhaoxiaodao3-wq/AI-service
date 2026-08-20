@@ -162,6 +162,18 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | [02-工具注册与安全执行](docs/learning/阶段8/02-工具注册与安全执行.md) | 工具注册与安全 |
 | [03-Agent循环与前端展示](docs/learning/阶段8/03-Agent循环与前端展示.md) | Agent 循环 |
 | [04-高级工具](docs/learning/阶段8/04-高级工具.md) | 天气与汇率工具 |
+| [01-混合检索与RRF](docs/learning/阶段9/01-混合检索与RRF.md) | 混合检索与 RRF |
+| [02-Rerank精排](docs/learning/阶段9/02-Rerank精排.md) | Rerank 精排 |
+| [03-引用溯源与前端展示](docs/learning/阶段9/03-引用溯源与前端展示.md) | 引用溯源 |
+| [01-异步任务与RQ](docs/learning/阶段10/01-异步任务与RQ.md) | Redis + RQ |
+| [02-Worker容器与前端进度](docs/learning/阶段10/02-Worker容器与前端进度.md) | Worker 与进度 |
+| [01-模型响应缓存](docs/learning/阶段11/01-模型响应缓存.md) | 响应缓存 |
+| [02-分布式限流](docs/learning/阶段11/02-分布式限流.md) | 分布式限流 |
+| [03-Prompt注入与SSRF防护](docs/learning/阶段11/03-Prompt注入与SSRF防护.md) | 安全防护 |
+| [04-LLM安全防护增强](docs/learning/阶段11/04-LLM安全防护增强.md) | 多层安全防护 |
+| [05-开源免费模型检测接入](docs/learning/阶段11/05-开源免费模型检测接入.md) | Guard Provider |
+| [全项目面试知识点总结](docs/interview/全项目面试知识点总结.md) | 面试参考资料 |
+| [深度知识点详解](docs/interview/深度知识点详解.md) | 面试深度讲解 |
 
 ## 阶段规划
 
@@ -176,8 +188,8 @@ docker compose up -d --build   # 一键启动后端 + PostgreSQL + Qdrant + 观�
 | 6 | Docker 容器化部署 + 收尾 | 已完成 |
 | 7 | 用户认证与多租户 | 已完成 |
 | 8 | Agent 工具调用 | 已完成 |
-| 9 | RAG 增强：Rerank + 混合检索 + 引用溯源 | 需求已登记，未开始 |
-| 10 | 异步任务与文件处理 | 需求已登记，未开始 |
-| 11 | 缓存、分布式限流与安全 | 需求已登记，未开始 |
+| 9 | RAG 增强：Rerank + 混合检索 + 引用溯源 | 已完成 |
+| 10 | 异步任务与文件处理 | 已完成 |
+| 11 | 缓存、分布式限流与安全 | 已完成 |
 | 12 | 可观测性与工程化部署 | 需求已登记，未开始 |
 | 13 | 产品化体验 | 需求已登记，未开始 |

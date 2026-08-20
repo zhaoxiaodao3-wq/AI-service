@@ -93,6 +93,19 @@
                   class="caret"
                 ></span>
               </template>
+              <div
+                v-if="m.role === 'assistant' && m.citations?.length"
+                class="citations"
+              >
+                <span
+                  v-for="c in m.citations"
+                  :key="c.doc_id + '-' + c.chunk_index"
+                  class="citation-chip"
+                  :title="c.text"
+                >
+                  {{ c.filename }} #{{ c.chunk_index + 1 }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -432,8 +445,9 @@ async function send() {
           pendingText += delta
           startReveal()
         },
-        onDone: () => {
+        onDone: (event) => {
           flushTypewriter()
+          aiMsg.citations = event?.citations
           loading.value = false
           streamingSessionId.value = -1
           streamingIndex.value = -1
@@ -1144,6 +1158,24 @@ onUnmounted(() => {
   color: var(--color-primary);
   font-size: 13px;
   font-weight: 700;
+}
+
+.citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.citation-chip {
+  padding: 4px 8px;
+  background: #eef3ff;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-accent, #2563eb);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: default;
 }
 </style>
 <style scoped>

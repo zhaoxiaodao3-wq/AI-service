@@ -82,6 +82,31 @@ class Settings(BaseSettings):
     tools_enabled: bool = True
     max_tool_rounds: int = 3
 
+    # RAG 增强：阶段 9 使用
+    rerank_enabled: bool = True
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    rerank_api_key: str = ""
+    rerank_base_url: str = "https://api.siliconflow.cn/v1"
+    vector_retrieve_k: int = 8
+    keyword_retrieve_k: int = 8
+    rrf_k: int = 60
+
+    # 异步任务：阶段 10 使用
+    redis_url: str = "redis://localhost:6379/0"
+    rq_queue_name: str = "aigc-tasks"
+    upload_dir: str = "data/uploads"
+
+    # 缓存/限流/安全：阶段 11 使用
+    cache_enabled: bool = True
+    response_cache_ttl_seconds: int = 3600
+    rate_limit_user_per_minute: int = 60
+    prompt_guard_enabled: bool = True
+    prompt_guard_provider: str = "heuristic"
+    guard_judge_model: str = "glm-4-flash"
+    max_input_length: int = 4000
+    prompt_guard_judge_always: bool = False
+    prompt_guard_model_dir: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

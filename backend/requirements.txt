@@ -14,5 +14,7 @@ qdrant-client==1.12.1
 pypdf>=5.0
 PyJWT>=2.9
 bcrypt>=4.2
+redis>=5.0
+rq>=1.16
 pytest>=8.3
 # httpx 由 litellm 自动决定版本，不显式锁定
